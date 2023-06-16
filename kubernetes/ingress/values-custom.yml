@@ -1,0 +1,45 @@
+controller:
+  containerSecurityContext:
+    capabilities:
+      drop: ["NET_RAW"]
+    runAsUser: 101
+    allowPrivilegeEscalation: false
+  ingressClassResource:
+    default: true
+  admissionWebhooks:
+    createSecretJob:
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["NET_RAW"]
+    patchWebhookJob:
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["NET_RAW"]
+    patch:
+      nodeSelector:
+        kubernetes.io/os: linux
+  nodeSelector:
+    kubernetes.io/os: linux
+  replicaCount: 3
+  service:
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    externalTrafficPolicy: Local 
+    nodePorts:
+      http: 31671
+      https: 31231
+    targetPorts:
+      http: 80
+      https: 443
+defaultBackend:
+  nodeSelector:
+    kubernetes.io/os: linux
+resources:
+  ##  limits:
+  ##    cpu: 100m
+  ##    memory: 90Mi!
+  requests:
+    cpu: 100m
+    memory: 500Mi

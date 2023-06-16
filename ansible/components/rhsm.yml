@@ -1,0 +1,19 @@
+---
+- name: redhat subscription manager registration
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Register and subscribe
+      redhat_subscription:
+        state: present
+        username: "{{ rhsm_user }}"
+        password: "{{ pass }}"
+        pool_ids: "{{ pool_id }}"
+        server_proxy_hostname: "{{ proxy }}"
+        server_proxy_port: "{{ proxy_port }}"
+      register: result
+    
+    - debug: 
+        var: result
+

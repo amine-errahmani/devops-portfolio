@@ -1,0 +1,129 @@
+# Default values for app1.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  namespace: app1
+  replicaCount: 2
+
+image:
+  repository: $repo/vendor-app1/app1
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "0.5.2"
+
+imagePullSecrets: 
+  - name: crcreds
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "appuser"
+
+podAnnotations: {}
+
+podLabels:
+  Solution: 'vendor'
+  Component: 'app1'
+  Criticality: 'Tier-1'
+  Autoscale: 'No'
+  Mutability: 'Immutable'
+  HA: 'Yes'
+  DR: 'No'
+  RPO: 'Less-Than-15-minutes'
+  RTO: 'Less-Than-1-hour'
+  PCIDSS: 'No'
+  Department: 'Compliance'
+  Stakeholder: ''
+  Contact: ''
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+
+containerPort: 8080
+
+ingress:
+  enabled: true
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-app3e: "true"
+  hosts:
+    - host: api.fraud.infra.ae
+      paths:
+      - path: /
+        backend:
+          serviceName: app1
+          servicePort: 8080
+  tls:
+   - secretName: app1-tls
+     hosts:
+       - api.fraud.infra.ae
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  requests:
+    cpu: 2000m
+    memory: 4Gi
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+extraVolumeMounts:
+  - name: config
+    mountPath: /datadisk/app1/config
+
+Volumes:
+  - name: config
+    secret:
+      secretName: app1-config
+
+config:
+  server:
+    port: 8080
+  app2Api:
+    host: https://batch.fraud.infra.ae
+    port: 443
+  app7ApiUpdate:
+    host: https://integration.infra.ae
+    port: 443
+  app7ApiExport:
+    host: https://integration.infra.ae
+    port: 443
+  kafkaServer: bootstrap.stream.infra.ae:30210
+  app7base64Creds: !vault secret/vendor/app1#app7base64Creds
+

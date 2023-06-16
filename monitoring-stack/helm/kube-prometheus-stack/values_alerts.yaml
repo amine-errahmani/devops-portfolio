@@ -1,0 +1,487 @@
+## Provide custom recording or alerting rules to be deployed into the cluster.
+##
+additionalPrometheusRulesMap:
+  alerting-rules:
+    groups:
+      - name: alerting.rules.windows
+        rules:
+          - alert: WindowsServerCollectorError
+            expr: windows_exporter_collector_success{collector!~"hyperv"} == 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server collector Error (instance {{ $labels.instance }})
+              description: "Collector {{ $labels.collector }} was not successful"
+          - alert: WindowsNodeDown
+            expr: up{job=~".*-win", instance!~".*c|.*c_.*|.*c-.*"} == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows node down (instance {{ $labels.instance }})
+              description: "Windows node down (instance {{ $labels.instance }}) for 5m"
+          # - alert: WindowsServerServiceStatus
+          #   expr: windows_service_status{status="ok"} != 1
+          #   for: 1m
+          #   labels:
+          #     severity: critical
+          #   annotations:
+          #     summary: Windows Server service Status (instance {{ $labels.instance }})
+          #     description: "Windows Service state is not OK"
+          # - alert: Windows Server ServiceState_app10S
+          #   expr: windows_service_state{state="running", name=~"iisadmin|w32time|dnscache|schedule|fxpositionservice|notificationservice|msmq", Solution="app10S"} != 1
+          #   for: 1m
+          #   labels:
+          #     severity: critical
+          #   annotations:
+          #     summary: Windows ServiceState_app10S Status (instance {{ $labels.instance }})
+          #     description: "Windows ServiceState_app10S states, {{ $labels.name }} is not running"
+          - alert: WindowsServerCpuUsage
+            expr: 100 - (avg by (instance) (rate(windows_cpu_time_total{mode="idle"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server CPU Usage (instance {{ $labels.instance }})
+              description: "CPU Usage is more than 80%"
+          - alert: WindowsServerMemoryUsage
+            expr: 100 - ((windows_os_physical_memory_free_bytes / windows_cs_physical_memory_bytes) * 100) > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server memory Usage (instance {{ $labels.instance }})
+              description: "Memory usage is more than 90%"
+          - alert: WindowsServerDiskSpaceUsage
+            expr: 100.0 - 100 * ((windows_logical_disk_free_bytes / 1024 / 1024 ) / (windows_logical_disk_size_bytes / 1024 / 1024)) > 80
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server disk Space Usage (instance {{ $labels.instance }})
+              description: "Disk usage is more than 80%"
+          - alert: WindowsServerUptime
+            expr: windows_system_system_up_time < 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server Uptime (instance {{ $labels.instance }})
+              description: "Windows system Uptime, {{ $labels.name }} is less than 1" 
+      - name: alerting.rules.linux
+        rules:
+          - alert: LinuxNodeDown
+            expr: up{job=~".*-lnx", instance!~".*c|.*c_.*|.*c-.*"} == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Linux node down (instance {{ $labels.instance }})
+              description: "Linux node down (instance {{ $labels.instance }}) for 5m"
+          - alert: HostOutOfMemory
+            expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of memory (instance {{ $labels.instance }})
+              description: "Node memory is filling up (< 10% left)"
+          - alert: HostUnusualNetworkThroughputIn
+            expr: sum by (instance) (rate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput in (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably receiving too much data (> 100 MB/s)"
+          - alert: HostUnusualNetworkThroughputOut
+            expr: sum by (instance) (rate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput out (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably sending too much data (> 100 MB/s)"
+          - alert: HostOutOfDiskSpace
+            expr: (node_filesystem_avail_bytes{Solution!="SIEM"} * 100) / node_filesystem_size_bytes{Solution!="SIEM"} < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of disk space (instance {{ $labels.instance }})
+              description: "Disk is almost full (< 10% left)"
+          - alert: HostHighCpuLoad
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host high CPU load (instance {{ $labels.instance }})
+              description: "CPU load is > 80%"
+          - alert: HostOutOfInode
+            expr: ceil(100 - (100 * node_filesystem_files_free{fstype=~"ext.*|xfs|nfs4"}) / node_filesystem_files{fstype=~"ext.*|xfs|nfs4"}) > 90
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of inode (instance {{ $labels.instance }})
+              description: "Filesystem inode is filling up (< 10% left)"
+      - name: alerting.rules.application
+        rules:
+          - alert: application_WindowsServerCollectorError
+            expr: windows_exporter_collector_success{Solution="application", collector!~"hyperv"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server collector Error (instance {{ $labels.instance }})
+              description: "Collector {{ $labels.collector }} was not successful"
+          - alert: application_WindowsServices
+            expr: windows_service_state{state="running", name=~"iisadmin|w32time|dnscache|schedule|smsemailservice|emailsenderservice|singleentryreciever|fcycriteriaservice|fxpositionservice|notificationservice", Solution="application"} != 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows ServiceState_application Status (instance {{ $labels.instance }})
+              description: "Windows ServiceState_application states, {{ $labels.name }} is not running"
+          - alert: application_WindowsServerCpuUsage
+            expr: 100 - (avg by (instance) (rate(windows_cpu_time_total{mode="idle",Solution ="application"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server CPU Usage (instance {{ $labels.instance }})
+              description: "CPU Usage is more than 80%"
+          - alert: application_WindowsServerMemoryUsage
+            expr: 100 - ((windows_os_physical_memory_free_bytes{Solution="application"} / windows_cs_physical_memory_bytes{Solution="application"}) * 100) > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server memory Usage (instance {{ $labels.instance }})
+              description: "Memory usage is more than 90%"
+          - alert: application_WindowsServerDiskSpaceUsage
+            expr: 100.0 - 100 * ((windows_logical_disk_free_bytes {Solution="application"} / 1024 / 1024 ) / (windows_logical_disk_size_bytes {Solution="application"} / 1024 / 1024)) > 80
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server disk Space Usage (instance {{ $labels.instance }})
+              description: "Disk usage is more than 80%"
+          - alert: application_WindowsServerUptime
+            expr: windows_system_system_up_time {Solution="application"} < 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server Uptime (instance {{ $labels.instance }})
+              description: "Windows system Uptime, {{ $labels.name }} is less than 1"    
+      - name: alerting.rules.ActiveDirectory
+        rules:
+          - alert: ActiveDirectory_WindowsServerCollectorError
+            expr: windows_exporter_collector_success{Solution="Active Directory", collector!~"hyperv"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server collector Error (instance {{ $labels.instance }})
+              description: "Collector {{ $labels.collector }} was not successful"
+          - alert: ActiveDirectory_WindowsServices
+            expr: windows_service_state{state="running", name=~"iisadmin|w32time|dnscache|schedule|", Solution="Active Directory"} != 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows ServiceState_ActiveDirectory Status (instance {{ $labels.instance }})
+              description: "Windows ServiceState_ActiveDirectory states, {{ $labels.name }} is not running"
+          - alert: ActiveDirectory_WindowsServerCpuUsage
+            expr: 100 - (avg by (instance) (rate(windows_cpu_time_total{mode="idle",Solution ="Active Directory"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server CPU Usage (instance {{ $labels.instance }})
+              description: "CPU Usage is more than 80%"
+          - alert: ActiveDirectory_WindowsServerMemoryUsage
+            expr: 100 - ((windows_os_physical_memory_free_bytes{Solution="Active Directory"} / windows_cs_physical_memory_bytes{Solution="Active Directory"}) * 100) > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server memory Usage (instance {{ $labels.instance }})
+              description: "Memory usage is more than 90%"
+          - alert: ActiveDirectory_WindowsServerDiskSpaceUsage
+            expr: 100.0 - 100 * ((windows_logical_disk_free_bytes {Solution="Active Directory"} / 1024 / 1024 ) / (windows_logical_disk_size_bytes {Solution="Active Directory"} / 1024 / 1024)) > 80
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server disk Space Usage (instance {{ $labels.instance }})
+              description: "Disk usage is more than 80%"
+          - alert: ActiveDirectory_WindowsServerUptime
+            expr: windows_system_system_up_time {Solution="Active Directory"} < 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server Uptime (instance {{ $labels.instance }})
+              description: "Windows system Uptime, {{ $labels.name }} is less than 1"
+      - name: alerting.rules.Satellite
+        rules:
+          - alert: Satellite_HostOutOfMemory
+            expr: node_memory_MemAvailable_bytes {Solution="RHEL"} / node_memory_MemTotal_bytes {Solution="RHEL"} * 100 < 10
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of memory (instance {{ $labels.instance }})
+              description: "Node memory is filling up (< 10% left)"
+          - alert: Satellite_HostUnusualNetworkThroughputIn
+            expr: sum by (instance) (rate(node_network_receive_bytes_total {Solution="RHEL"}[2m])) / 1024 / 1024  > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput in (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably receiving too much data (> 100 MB/s)"
+          - alert: Satellite_HostUnusualNetworkThroughputOut
+            expr: sum by (instance) (rate(node_network_transmit_bytes_total {Solution="RHEL"}[2m])) / 1024 / 1024 > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput out (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably sending too much data (> 100 MB/s)"
+          - alert: Satellite_HostOutOfDiskSpace
+            expr: (node_filesystem_avail_bytes {Solution="RHEL"} * 100) / node_filesystem_size_bytes {Solution="RHEL"} < 10 and on(instance, device, mountpoint) node_filesystem_readonly {Solution="RHEL"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of disk space (instance {{ $labels.instance }})
+              description: "Disk is almost full (< 10% left)"
+          - alert: Satellite_HostHighCpuLoad
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle",Solution="RHEL"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host high CPU load (instance {{ $labels.instance }})
+              description: "CPU load is > 80%"
+          - alert: Satellite_HostSystemdService
+            expr: node_systemd_unit_state{Solution="RHEL",name=~"chronyd.service|rh-mongodb34-mongod.service|postgresql.service|qdrouterd.service|qpidd.service|rh-redis5-redis.service|squid.service|pulp_celerybeat.service|pulp_resource_manager.service|pulp_streamer.service|pulp_workers.service|smart_proxy_dynflow_core.service|tomcat.service|dynflow-sidekiq@orchestrator.service|foreman.service|puppetserver.service|dynflow-sidekiq@worker.service|dynflow-sidekiq@worker-hosts-queue.service|foreman-proxy.service|rsyslog.service|crond.service|goferd.service|node_exporter.service|promtail.service|qualys-cloud-agent.service|splunk.service|sshd.service|auditd.service|sshd.service|httpd.service",state="active"}==0
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host systemd service crashed (instance {{ $labels.instance }})
+              description: "systemd service crashed"       
+      - name: alerting.rules.Vault
+        rules:
+          - alert: Vault_HostOutOfMemory
+            expr: node_memory_MemAvailable_bytes {Solution="HashiCorp Vault"} / node_memory_MemTotal_bytes {Solution="HashiCorp Vault"} * 100 < 10
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of memory (instance {{ $labels.instance }})
+              description: "Node memory is filling up (< 10% left)"
+          - alert: Vault_HostUnusualNetworkThroughputIn
+            expr: sum by (instance) (rate(node_network_receive_bytes_total {Solution="HashiCorp Vault"}[2m])) / 1024 / 1024  > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput in (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably receiving too much data (> 100 MB/s)"
+          - alert: Vault_HostUnusualNetworkThroughputOut
+            expr: sum by (instance) (rate(node_network_transmit_bytes_total {Solution="HashiCorp Vault"}[2m])) / 1024 / 1024 > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput out (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably sending too much data (> 100 MB/s)"
+          - alert: Vault_HostOutOfDiskSpace
+            expr: (node_filesystem_avail_bytes {Solution="HashiCorp Vault"} * 100) / node_filesystem_size_bytes {Solution="HashiCorp Vault"} < 10 and on(instance, device, mountpoint) node_filesystem_readonly {Solution="HashiCorp Vault"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of disk space (instance {{ $labels.instance }})
+              description: "Disk is almost full (< 10% left)"
+          - alert: Vault_HostHighCpuLoad
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle",Solution="HashiCorp Vault"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host high CPU load (instance {{ $labels.instance }})
+              description: "CPU load is > 80%"
+          - alert: Vault_HostSystemdService
+            expr: node_systemd_unit_state{Solution="HashiCorp Vault",name=~"chronyd.service|rsyslog.service|crond.service|goferd.service|node_exporter.service|promtail.service|qualys-cloud-agent.service|splunk.service|sshd.service|auditd.service|sshd.service|httpd.service",state="active"}==0
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host systemd service crashed (instance {{ $labels.instance }})
+              description: "systemd service crashed"
+      - name: alerting.rules.SQLSERVER
+        rules:
+          - alert: SQLSERVER_WindowsServerCollectorError
+            expr: windows_exporter_collector_success{Solution="SQLSERVER", collector!~"hyperv"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server collector Error (instance {{ $labels.instance }})
+              description: "Collector {{ $labels.collector }} was not successful"
+          - alert: SQLSERVER_WindowsServices
+            expr: windows_service_state{state="running", name=~"iisadmin|w32time|dnscache|schedule|mssql$sql02|mssqlserver|sqlserveragent|sqlagent$sql02", Solution="SQLSERVER"} != 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows ServiceState_SQLSERVER Status (instance {{ $labels.instance }})
+              description: "Windows ServiceState_SQLSERVER states, {{ $labels.name }} is not running"
+          - alert: SQLSERVER_WindowsServerCpuUsage
+            expr: 100 - (avg by (instance) (rate(windows_cpu_time_total{mode="idle",Solution ="SQLSERVER"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server CPU Usage (instance {{ $labels.instance }})
+              description: "CPU Usage is more than 80%"
+          - alert: SQLSERVER_WindowsServerMemoryUsage
+            expr: 100 - ((windows_os_physical_memory_free_bytes{Solution="SQLSERVER"} / windows_cs_physical_memory_bytes{Solution="SQLSERVER"}) * 100) > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server memory Usage (instance {{ $labels.instance }})
+              description: "Memory usage is more than 90%"
+          - alert: SQLSERVER_WindowsServerDiskSpaceUsage
+            expr: 100.0 - 100 * ((windows_logical_disk_free_bytes {Solution="SQLSERVER"} / 1024 / 1024 ) / (windows_logical_disk_size_bytes {Solution="SQLSERVER"} / 1024 / 1024)) > 80
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server disk Space Usage (instance {{ $labels.instance }})
+              description: "Disk usage is more than 80%"
+          - alert: SQLSERVER_WindowsServerUptime
+            expr: windows_system_system_up_time {Solution="SQLSERVER"} < 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server Uptime (instance {{ $labels.instance }})
+              description: "Windows system Uptime, {{ $labels.name }} is less than 1"
+      - name: alerting.rules.Oracle
+        rules:
+          - alert: Oracle_HostOutOfMemory
+            expr: node_memory_MemAvailable_bytes {Solution="Oracle"} / node_memory_MemTotal_bytes {Solution="Oracle"} * 100 < 10
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of memory (instance {{ $labels.instance }})
+              description: "Node memory is filling up (< 10% left)"
+          - alert: Oracle_HostUnusualNetworkThroughputIn
+            expr: sum by (instance) (rate(node_network_receive_bytes_total {Solution="Oracle"}[2m])) / 1024 / 1024  > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput in (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably receiving too much data (> 100 MB/s)"
+          - alert: Oracle_HostUnusualNetworkThroughputOut
+            expr: sum by (instance) (rate(node_network_transmit_bytes_total {Solution="Oracle"}[2m])) / 1024 / 1024 > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual network throughput out (instance {{ $labels.instance }})
+              description: "Host network interfaces are probably sending too much data (> 100 MB/s)"
+          - alert: Oracle_HostOutOfDiskSpace
+            expr: (node_filesystem_avail_bytes {Solution="Oracle"} * 100) / node_filesystem_size_bytes {Solution="Oracle"} < 10 and on(instance, device, mountpoint) node_filesystem_readonly {Solution="Oracle"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of disk space (instance {{ $labels.instance }})
+              description: "Disk is almost full (< 10% left)"
+          - alert: Oracle_HostHighCpuLoad
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle",Solution="Oracle"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host high CPU load (instance {{ $labels.instance }})
+              description: "CPU load is > 80%"
+          - alert: Oracle_HostSystemdService
+            expr: node_systemd_unit_state{Solution="Oracle",name=~"chronyd.service|rsyslog.service|crond.service|goferd.service|node_exporter.service|promtail.service|qualys-cloud-agent.service|splunk.service|sshd.service|auditd.service|sshd.service|httpd.service",state="active"}==0
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host systemd service crashed (instance {{ $labels.instance }})
+              description: "systemd service crashed"
+          - alert: OracleDBExporterDown
+            expr: up{job=~"oracledb-exporter-.*"} == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Oracle DB exporter down (instance {{ $labels.instance }})
+              description: "Oracle DB exporter down (instance {{ $labels.instance }}) for 5m"
+      - name: alerting.rules.NetworkBackup
+        rules:
+          - alert: NetworkBackup_WindowsServerCollectorError
+            expr: windows_exporter_collector_success{Solution="Infrastructure", collector!~"hyperv"} ==0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server collector Error (instance {{ $labels.instance }})
+              description: "Collector {{ $labels.collector }} was not successful"
+          - alert: NetworkBackup_WindowsServices
+            expr: windows_service_state{state="running", name=~"iisadmin|w32time|dnscache|schedule|", Solution="Infrastructure"} != 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows ServiceState_NetworkBackup Status (instance {{ $labels.instance }})
+              description: "Windows ServiceState_NetworkBackup states, {{ $labels.name }} is not running"
+          - alert: NetworkBackup_WindowsServerCpuUsage
+            expr: 100 - (avg by (instance) (rate(windows_cpu_time_total{mode="idle",Solution ="Infrastructure"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server CPU Usage (instance {{ $labels.instance }})
+              description: "CPU Usage is more than 80%"
+          - alert: NetworkBackup_WindowsServerMemoryUsage
+            expr: 100 - ((windows_os_physical_memory_free_bytes{Solution="Infrastructure"} / windows_cs_physical_memory_bytes{Solution="Infrastructure"}) * 100) > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Windows Server memory Usage (instance {{ $labels.instance }})
+              description: "Memory usage is more than 90%"
+          - alert: NetworkBackup_WindowsServerDiskSpaceUsage
+            expr: 100.0 - 100 * ((windows_logical_disk_free_bytes {Solution="Infrastructure"} / 1024 / 1024 ) / (windows_logical_disk_size_bytes {Solution="Infrastructure"} / 1024 / 1024)) > 80
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server disk Space Usage (instance {{ $labels.instance }})
+              description: "Disk usage is more than 80%"
+          - alert: NetworkBackup_WindowsServerUptime
+            expr: windows_system_system_up_time {Solution="Infrastructure"} < 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Windows Server Uptime (instance {{ $labels.instance }})
+              description: "Windows system Uptime, {{ $labels.name }} is less than 1"

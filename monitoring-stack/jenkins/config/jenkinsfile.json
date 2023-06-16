@@ -1,0 +1,15 @@
+{
+    "crcredss" : "creds",
+    "jfrogToken" : "token-base64",
+    "vault_token_dev": "vault_token_dev",
+    "vault_addr_dev": "https://vault.server",
+    "vault_token_shp": "vault-token-full-access",
+    "vault_addr_shp": "https://vault.server",
+    "thanosstakey": "key",
+    "thanosstakeyprd": "key",
+    "oracledbExporter": {
+        "containerName": "oracledb-exporter/oracledb-exporter",
+        "containerVersion": "0.0.1",
+        "exporter_version": "0.3.2"
+    }
+}

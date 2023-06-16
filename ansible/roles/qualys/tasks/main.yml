@@ -1,0 +1,6 @@
+---
+# tasks file for qualys
+
+- include: check_install.yml
+
+- include: install.yml

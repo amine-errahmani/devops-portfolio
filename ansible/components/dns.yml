@@ -1,0 +1,16 @@
+---
+- name: DOMAIN config on network interface
+  hosts: app3
+  become: yes
+
+  tasks:
+    - name: add domain to network config
+      lineinfile:
+        path: /etc/sysconfig/network-scripts/ifcfg-eth0
+        line: "DOMAIN={{ domain }}"
+        state: present
+    
+    - name: Restart network service for interface eth0
+      ansible.builtin.service:
+        name: network
+        state: restarted

@@ -1,0 +1,61 @@
+---
+- name: Java 11 install
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+
+  tasks:
+    - name: download Java 11 RPM
+      get_url:
+        url: "{{ bin_url }}{{ java_bin }}{{ sas_token }}"
+        dest: /tmp/
+
+    - name: Install Java 11 RPM
+      yum:
+        pkg: "/tmp/{{ java_bin }}"
+        state: present
+        lock_timeout: 180
+
+    - name: cleanup Java 11 rpm
+      file:
+        path: "/tmp/{{ java_bin }}"
+        state: absent
+
+    - name: dev certs
+      block:
+        - name: download certificates
+          get_url:
+            url: "{{ item }}"
+            dest: "{{ certs_dest }}"
+          with_items:
+            - "{{ certs_url }}{{ test_root_cert }}{{ sas_token }}"
+            - "{{ certs_url }}{{ test_int_cert_app }}{{ sas_token }}"
+            - "{{ certs_url }}{{ test_int_cert_inf }}{{ sas_token }}"
+        
+        - name: add certificates to java
+          shell: |
+            keytool -import -alias devrootca -cacerts -file {{ certs_dest }}{{ test_root_cert }} -storepass changeit -noprompt
+            keytool -import -alias devintcaapp -cacerts -file {{ certs_dest }}{{ test_int_cert_app }} -storepass changeit -noprompt
+            keytool -import -alias devintcainf -cacerts -file {{ certs_dest }}{{ test_int_cert_inf }} -storepass changeit -noprompt
+      when: env != "prd"
+
+    - name: prod certs
+      block:
+        - name: download certificates
+          get_url:
+            url: "{{ item }}"
+            dest: "{{ certs_dest }}"
+            force: true
+          with_items:
+            - "{{ certs_url }}{{ prd_root_cert }}{{ sas_token }}"
+            - "{{ certs_url }}{{ prd_int_cert_app }}{{ sas_token }}"
+            - "{{ certs_url }}{{ prd_int_cert_inf }}{{ sas_token }}"
+        
+        - name: add certificates to java
+          shell: |
+            keytool -import -alias prodrootca -cacerts -file {{ certs_dest }}{{ prd_root_cert }} -storepass changeit -noprompt
+            keytool -import -alias prodintcaapp -cacerts -file {{ certs_dest }}{{ prd_int_cert_app }} -storepass changeit -noprompt
+            keytool -import -alias prodintcainf -cacerts -file {{ certs_dest }}{{ prd_int_cert_inf }} -storepass changeit -noprompt
+      when: env == "prd"

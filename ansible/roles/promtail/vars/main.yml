@@ -1,0 +1,4 @@
+---
+# vars file for promtail
+bin_url: ''
+promtail_bin: 'promtail-2.4.1-linux-amd64.zip'

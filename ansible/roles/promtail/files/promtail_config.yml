@@ -1,0 +1,56 @@
+server:
+  http_listen_port: 9080
+clients:
+  - url: https://logs.infra/loki/api/v1/push
+    external_labels: 
+      hostname: ${HOSTNAME}
+      service: # ...
+      solution: SOLUTION #  ...
+      application: APPLICATION # application : ...
+      OS: Linux # linux / windows / Container
+positions:
+  filename : /opt/promtail/positions.yaml
+scrape_configs:
+  - job_name: system  # for Redhat log files
+    pipeline_stages:
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          __path__: "/var/log/{*.log,*/*.log,messages*,btmp*,cron*,dmesg*,grubby*,*log*,secure*,spooler*,wtmp}"
+  # - job_name: wildfly
+  #   pipeline_stages:
+  #   static_configs:
+  #     - targets:
+  #         - localhost
+  #       labels:
+  #         job: platform
+  #         platform: wildfly
+  #         __path__: "wildfly/log/path"
+  # - job_name: tomcat
+  #   pipeline_stages:
+  #   static_configs:
+  #     - targets:
+  #         - localhost
+  #       labels:
+  #         job: platform
+  #         platform: tomcat
+  #         __path__: "Application/log/path" # eg :  /opt/tomcat/logs/*.log for app3
+  # - job_name: platform
+  #   pipeline_stages:
+  #   static_configs:
+  #     - targets:
+  #         - localhost
+  #       labels:
+  #         job: platform
+  #         platform: "java/tomcat/wildfly..."
+  #         __path__: "Application/log/path"
+  # - job_name: application
+  #   pipeline_stages:
+  #   static_configs:
+  #     - targets:
+  #         - localhost
+  #       labels:
+  #         job: app
+  #         __path__: "Application/log/path" # should be the application logs eg :  /datadisk/app3/vendor/logs/*.log for app3

@@ -1,0 +1,4 @@
+authSecret:
+  create: true
+  github_token: ''
+  authSecret: true

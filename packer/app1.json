@@ -1,0 +1,96 @@
+{
+    "variables": {
+        "subscription_id": "{{env `ARM_SUBSCRIPTION_ID`}}",
+        "tenant_id": "{{env `ARM_TENANT_ID`}}",
+        "client_id": "{{env `PACKER_CLIENT_ID`}}",
+        "client_secret": "{{env `PACKER_CLIENT_SECRET`}}",
+        "IMAGE_NAME": "{{env `imgName`}}",
+        "IMAGE_VERSION": "{{env `imgVersion`}}",
+        "githubuser": "{{env `githubuser`}}",
+        "githubpass": "{{env `githubpass`}}"
+    },
+    "builders": [
+        {
+            "type": "azure-arm",
+        
+            "subscription_id": "{{user `subscription_id`}}",
+            "tenant_id": "{{user `tenant_id`}}",
+            "client_id": "{{user `client_id`}}",
+            "client_secret": "{{user `client_secret`}}",
+
+            "build_resource_group_name": "{{user `packer_rg`}}",
+            "virtual_network_name": "{{user `packer_vnet`}}",
+            "virtual_network_subnet_name": "{{user `packer_snet`}}",
+            "virtual_network_resource_group_name": "{{user `packer_vnet_rg`}}",            
+            
+            "managed_image_resource_group_name": "{{user `RESOURCE_GROUP`}}",
+            "managed_image_name": "{{user `IMAGE_NAME`}}-{{user `IMAGE_VERSION`}}",
+           
+            "shared_image_gallery": {
+                "subscription": "{{user `gallery_sub`}}",
+                "resource_group": "{{user `gallery_rg`}}",
+                "gallery_name": "{{user `gallery_name`}}",
+                "image_name": "{{user `rh_base_img`}}",
+                "image_version": "{{user `rh_image_ver`}}"
+            },
+
+            "shared_image_gallery_destination": {
+                "subscription": "{{user `gallery_sub`}}",
+                "resource_group": "{{user `gallery_rg`}}",
+                "gallery_name": "{{user `gallery_name`}}",
+                "image_name": "{{user `IMAGE_NAME`}}",
+                "image_version": "{{user `IMAGE_VERSION`}}",
+                "replication_regions": ["UAENorth", "UAECentral"]
+            },
+            "shared_image_gallery_replica_count":"2",
+                    
+            "os_type": "Linux",
+
+            "plan_info": {
+                "plan_name": "{{user `rh_base_img_plan`}}",
+                "plan_product": "rhel-byos",
+                "plan_publisher": "redhat"
+            },
+
+            "azure_tags": {
+              "environment": "{{user `ENVIRONMENT`}}",
+              "application": "{{user `APP_NAME`}}"
+            },
+        
+            "disk_additional_size": "{{ user `vendor_DATA_DISK_SIZE` }}",
+            "vm_size": "{{user `VM_SIZE`}}"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "script": "shell_scripts/datadisk-init.sh"
+        },
+        {
+            "type": "ansible-local",
+            "playbook_dir": "ansible/components/",
+            "playbook_files": ["ansible/components/os_config.yml"],
+            "extra_arguments": [ "-e \"proxy={{user `proxy`}}\" -e \"githubuser={{user `githubuser`}}\" -e \"githubpass={{user `githubpass`}}\" -e \"ssh_key={{user `ssh_key`}}\" -e \"appuser_ssh_key_pub={{user `appuser_ssh_key_pub`}}\" -e \"proxy_exclusions={{user `proxy_exclusions`}}\"" ]
+        },
+        {
+            "type": "ansible-local",
+            "playbook_dir": "ansible/components/",
+            "playbook_files": ["ansible/components/java_11.yml"],
+            "extra_arguments": [ "-e \"proxy={{user `proxy`}}\" -e \"env={{user `VAR_ENV`}}\"" ]
+        },
+        {
+            "type": "ansible-local",
+            "playbook_dir": "ansible/app2/app1/",
+            "playbook_files": ["ansible/app2/app1/app1.yml"],
+            "extra_arguments": [ "-e \"env={{user `ENVIRONMENT` | lower}}\" -e \"proxy={{user `proxy`}}\" -e \"region={{user `region_suffix`}}\" -e \"app1_jar={{user `app1_jar`}}\" -e \"kafka_host={{user `kafka_host`}}\" -e \"kafka_port={{user `kafka_port`}}\"" ]
+        },
+        {
+            "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+            "inline": [
+              "/usr/sbin/waagent -force -deprovision && export HISTSIZE=0 && sync"
+            ],
+            "inline_shebang": "/bin/sh -x",
+            "type": "shell"
+        }
+    ]
+}

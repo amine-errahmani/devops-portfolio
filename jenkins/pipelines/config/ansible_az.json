@@ -1,0 +1,7 @@
+{
+    "crcredss" : "jfrog-cr-creds",
+    "jfrogToken" : "jfrog-token-base64",
+    "container_name" : "ansible_az",
+    "container_repo" : "devops-tools",
+    "IMAGE_VERSION" : "0.0.1"
+}

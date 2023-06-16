@@ -1,0 +1,29 @@
+---
+- name: mount Azure fileshare
+  hosts: all
+  become: true
+
+  tasks:
+    - name: create smbcredentials folder
+      file: 
+        path: /etc/smbcredentials
+        state: directory 
+
+    - name: create credential file for azure mount
+      lineinfile:
+        path: /etc/smbcredentials/{{ sa_name }}.cred
+        state: present
+        create: yes
+        line: "{{ item }}"
+        mode: 0600
+      with_items:
+        - "username={{ sa_name }}"
+        - "password={{ sa_pass }}"
+
+    - name: "Mount Azure fileshare into {{ dest_folder }} Folder"
+      mount:
+        path: "{{ dest_folder }}"
+        src: "//{{ sa_name }}.file.core.windows.net/{{ fileshare }}"
+        fstype: cifs
+        opts: nofail,vers=3.0,credentials=/etc/smbcredentials/{{ sa_name }}.cred,dir_mode=0777,file_mode=0777,serverino,uid=1001,gid=1001
+        state: mounted

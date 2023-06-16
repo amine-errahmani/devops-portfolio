@@ -1,0 +1,47 @@
+---
+# tasks file for promtail
+
+- name: create user promtail
+  user:
+    name: promtail
+    group: adm
+    system: yes
+    shell: /bin/bash
+    state: present
+
+- name: create promtail folder
+  file:
+    path: /opt/promtail
+    state: directory
+    mode: 0755
+    owner: promtail
+    group: adm
+
+- name: download promtail bin
+  unarchive:
+    src: "{{ bin_url }}{{ promtail_bin }}{{ bin_sas_token }}"
+    dest: /opt/promtail
+    mode: 0775
+    owner: promtail
+    group: adm
+    remote_src: yes
+    
+- name: create promtail positions.yaml file
+  file:
+    path: /opt/promtail/positions.yaml
+    state: touch
+    mode: 0644
+    owner: promtail
+    group: adm
+    
+- name: copy promtail service file
+  copy:
+    src: ../agents/promtail.service
+    dest: /etc/systemd/system/
+    mode: 0755
+
+# - name: enable and start promtail service
+#   service:
+#     name: promtail
+#     state: started
+#     enabled: True

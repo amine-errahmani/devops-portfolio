@@ -1,0 +1,154 @@
+---
+- name: app2 Update 
+  hosts: app2
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+  
+  tasks:
+    - name: set date tag
+      set_fact:
+        date: "{{ lookup('pipe', 'date +%d-%m-%y_%H-%M') }}"
+      tags: [bin, scenario, html]
+
+    - name: update git repo
+      shell : cd /datadisk/vendor-solution ; git reset --hard; git pull
+      tags: scenario
+
+    - name: create bin backup dir
+      file:
+        path: /datadisk/bin_backup/
+        state: directory
+        owner: appuser
+        group: vendoradmin
+        mode: 0775
+      tags: bin
+
+    - name: backup binaries
+      copy: 
+        src: /datadisk/wildfly-16.0.0.Final/standalone/deployments/idctapp.ear
+        dest: "/datadisk/bin_backup/idctapp_{{ date }}.ear"
+        remote_src: yes
+        owner: appuser
+        group: vendoradmin
+        mode: 0755
+      tags: bin       
+    
+    - name: update idctapp.ear
+      get_url:
+        url: "{{ bin_url }}{{ app2_binary }}{{ sas_token }}"
+        dest: /datadisk/wildfly-16.0.0.Final/standalone/deployments/idctapp.ear
+        owner: appuser
+        group: vendoradmin        
+        force: yes
+      tags: bin 
+
+    - name: update scenario files
+      copy:
+        src: /datadisk/vendor-solution/app2/scenario
+        dest: /datadisk/appHome/
+        owner: appuser
+        group: vendoradmin        
+        remote_src: yes
+        force: yes
+        mode: 0755
+      tags: scenario
+
+    - name: create html backup dir
+      file:
+        path: "/datadisk/bin_backup/html_{{ date }}"
+        state: directory
+        owner: appuser
+        group: vendoradmin
+        mode: 0755
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: save html folder
+      command : "cp -R /var/www/html /datadisk/bin_backup/html_{{ date }}"
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: delete html folder
+      file:
+        path: /var/www/html
+        state: absent
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: recreate html dir
+      file:
+        path: "/var/www/html"
+        state: directory
+        owner: appuser
+        group: vendoradmin
+        mode: 0755
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: unarchive html folder
+      unarchive:
+        src: "{{ bin_url }}html.zip{{ sas_token }}"
+        dest: /var/www/html/
+        owner: appuser
+        group: vendoradmin        
+        remote_src: yes
+        # force: yes
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: restore config.js file
+      copy:
+        src: "/datadisk/bin_backup/html_{{ date }}/html/config.js"
+        dest: /var/www/html/config.js
+        owner: appuser
+        group: vendoradmin        
+        remote_src: yes
+        force: yes
+        mode: 0664
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: Restart services for batch
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - cacheserver
+        - terracotta
+        - wildfly
+      when: '"batch" in ansible_host'
+      tags: [bin, scenario, html] 
+
+    - name: Restart services for batch
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - httpd
+      when: '"batch" in ansible_host and env != "DEV"'
+      tags: html
+
+    - name: Restart wildfly for realtime
+      systemd:
+        name: wildfly
+        state: restarted
+      when: '"batch" not in ansible_host'
+      tags: [bin, scenario, html]
+
+    - name: wait for application restart
+      pause:
+        seconds: 30
+      tags: [bin, scenario, html]
+
+    - name: check logs
+      shell: "tail -f /datadisk/wildfly-16.0.0.Final/standalone/log/server.log | sed '/(WildFly Core 8.0.0.Final) started in/ q0; /(WildFly Core 8.0.0.Final) stopped in/ q1; /(WildFly Core 8.0.0.Final) started with errors/ q1'" 
+      register: logs
+      async: 300
+      poll: 5
+      tags: [bin, scenario, html]
+
+    - debug: var=logs.stdout_lines 
+      tags: [bin, scenario, html]
+

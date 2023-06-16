@@ -1,0 +1,27 @@
+<FirstLogonCommands>
+  <SynchronousCommand>
+    <CommandLine>cmd /c "copy C:\AzureData\CustomData.bin E:\scripts\postconf.ps1"</CommandLine>
+    <Description>CopyScript</Description>
+    <Order>11</Order>
+  </SynchronousCommand>
+  <SynchronousCommand>
+    <CommandLine>powershell.exe -sta -ExecutionPolicy Bypass -File C:\ServerConfig\set-timezone.ps1</CommandLine>
+    <Description>RunScript</Description>
+    <Order>12</Order>
+  </SynchronousCommand>
+  <SynchronousCommand>
+    <CommandLine>powershell.exe -sta -ExecutionPolicy Bypass -File C:\ServerConfig\configure-proxy.ps1</CommandLine>
+    <Description>RunScript</Description>
+    <Order>13</Order>
+  </SynchronousCommand>  
+  <SynchronousCommand>
+    <CommandLine>powershell.exe -sta -ExecutionPolicy Bypass -command "E:\scripts\app4_postconf.ps1 ${admin_username} ${admin_password} ${app4_fileshare} ${app4_fileshare_pass}"</CommandLine>
+    <Description>RunScript</Description>
+    <Order>14</Order>
+  </SynchronousCommand>    
+  <SynchronousCommand>
+    <CommandLine>cmd.exe /c C:\ServerConfig\onboard-atp.cmd &lt;nul</CommandLine>
+    <Description>RunScript</Description>
+    <Order>15</Order>
+  </SynchronousCommand>    
+</FirstLogonCommands>

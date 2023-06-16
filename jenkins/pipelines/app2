@@ -1,0 +1,555 @@
+#!/usr/bin/groovy
+def appName = "app2"
+def timestamp = System.currentTimeMillis()
+def podLabel = 'jenkins-' + appName + '-' + timestamp
+
+podTemplate(label: podLabel, containers: [
+    containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.27-1-alpine', args: '${computer.jnlpmac} ${computer.name}', workingDir: '/home/jenkins', resourceRequestCpu: '200m', resourceLimitCpu: '300m', resourceRequestMemory: '256Mi', resourceLimitMemory: '512Mi'),
+    containerTemplate(name: 'terragrunt', image: 'alpine/terragrunt:0.14.7', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'packer', image: 'hashicorp/packer:latest', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat', resourceRequestMemory: '1Gi', resourceLimitMemory: '2Gi'),
+    containerTemplate(name: 'curl', image: 'benhall/curl:latest', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'ansible', image: 'ilyatek/ansible-az:latest', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat')
+],
+volumes:[
+    hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
+    hostPathVolume(mountPath: '/usr/bin/docker', hostPath: '/usr/bin/docker'),
+]){
+
+    node (podLabel) {
+
+        properties([
+            parameters([
+                booleanParam(name: 'RUNPACKER', defaultValue: true, description: 'if packer stage should be executed'),
+                booleanParam(name: 'RUNTERRAFORM', defaultValue: true, description: 'if terraform stage should be executed'),
+                booleanParam(name: 'RUNANSIBLE', defaultValue: true, description: 'if post-conf stage should be executed')
+            ])
+        ])
+
+        try {
+
+            stage('Checkout') {
+                ansiColor('xterm') {
+                    println "Checkout the git repo"
+                    checkout scm
+                }
+            }
+
+            userInput = false
+
+            println "Loading Pipeline config"
+            inputFile = readFile('jenkins/config/jenkinsfile.json')
+            config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+
+            apply = false
+            mainapply = false
+            
+            
+            if (env.BRANCH_NAME == "develop" || env.BRANCH_NAME =~ "feature/*") {
+                withCredentials([azureServicePrincipal(credentialsId: "${config.dev.credentialsId}",
+                                                        subscriptionIdVariable: "${config.subscription}",
+                                                        clientIdVariable: "${config.clientId}",
+                                                        clientSecretVariable: "${config.clientSecret}",
+                                                        tenantIdVariable: "${config.tenantId}"),
+                                azureServicePrincipal(credentialsId: "${config.dev.credentialsId}",
+                                                        subscriptionIdVariable: "TF_VAR_subscription_id"), 
+                                azureServicePrincipal(credentialsId: "${config.dev.packerCredentialsId}",
+                                                        subscriptionIdVariable: "${config.subscription}",
+                                                        clientIdVariable: "${config.packerClientId}",
+                                                        clientSecretVariable: "${config.packerClientSecret}",
+                                                        tenantIdVariable: "${config.tenantId}"),
+                                azureServicePrincipal(credentialsId: "${config.shd.credentialsId}",
+                                                    subscriptionIdVariable: "${config.shd.subId}")]) {
+                    
+                    def ENV = "dev"
+
+                    if (params.RUNPACKER) {
+                        stage ('Build Images') {
+                            withCredentials([usernamePassword(credentialsId: "${config.dev.DbPasswordId}", usernameVariable: 'db_user', passwordVariable: 'db_pass'),
+                                            usernamePassword(credentialsId: "${config.gitSP}", usernameVariable: 'githubuser', passwordVariable: 'githubpass'),
+                                            sshUserPrivateKey(credentialsId: 'appuser_ssh_key', keyFileVariable: 'appuser_ssh_key'),
+                                            string(credentialsId: 'vendor_sas_token', variable: 'vendor_sas_token')]) {
+
+                                println "Loading packer image config"
+                                packerInput = readFile('packer/envs/dev.json')
+                                packer = new groovy.json.JsonSlurperClassic().parseText(packerInput)
+
+                                sigRg = "${packer.gallery_rg}"
+                                sigName = "${packer.gallery_name}"
+
+                                def imgName="${config.dev.app2.imageName}"
+                                def imgVersion="${config.dev.app2.imageVersion}"
+
+                                
+                                packer(ENV, imgName, imgVersion)
+                            }
+                        }
+                    }
+
+                    if (params.RUNTERRAFORM) {
+                        stage ('Deploy Infra') {
+                            container('terragrunt') {
+                                withCredentials([string(credentialsId: "${config.armKeyId}", variable: 'ARM_ACCESS_KEY'),
+                                                string(credentialsId: "${config.armKeyId}", variable: 'TF_VAR_arm_access_key')]){
+
+                                    terraform(ENV)
+
+                                    stage ("wait 5 minutes before dns records setup") {
+                                        ansiColor('xterm') {
+                                            echo 'Waiting 5 minutes before dns records setup'
+                                            sleep 300 // seconds
+                                        }
+                                    }
+
+                                    dns(ENV)        
+                                }
+                            }
+                        }
+                    }
+
+                    if (params.RUNANSIBLE && params.RUNTERRAFORM) {
+                        stage ('Application Post config Approval') {
+                            userInput = input(
+                                id: 'runAnsibleDeployment', 
+                                message: 'would you like to proceed with the Application Post config?', 
+                                parameters: [ 
+                                    [
+                                        $class: 'BooleanParameterDefinition',
+                                        defaultValue: false,
+                                        description: 'Application Post config',
+                                        name: 'confirm Application Post config'
+                                    ] 
+                                ]
+                            )
+                        }
+                    } else {
+                        userInput = true
+                    }
+
+                    if (params.RUNANSIBLE) {
+                        if (userInput == true) {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'appuser_ssh_key', keyFileVariable: 'appuser_ssh_key'),
+                                            usernamePassword(credentialsId: "${config.worldcheck}", usernameVariable: 'wc_user', passwordVariable: 'wc_pass')]){
+                                ansible(ENV)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (env.BRANCH_NAME == "test" ) {
+                withCredentials([azureServicePrincipal(credentialsId: "${config.test.credentialsId}",
+                                                        subscriptionIdVariable: "${config.subscription}",
+                                                        clientIdVariable: "${config.clientId}",
+                                                        clientSecretVariable: "${config.clientSecret}",
+                                                        tenantIdVariable: "${config.tenantId}"),
+                                azureServicePrincipal(credentialsId: "${config.test.credentialsId}",
+                                                        subscriptionIdVariable: "TF_VAR_subscription_id"),
+                                azureServicePrincipal(credentialsId: "${config.test.packerCredentialsId}",
+                                                        subscriptionIdVariable: "${config.subscription}",
+                                                        clientIdVariable: "${config.packerClientId}",
+                                                        clientSecretVariable: "${config.packerClientSecret}",
+                                                        tenantIdVariable: "${config.tenantId}"),
+                                azureServicePrincipal(credentialsId: "${config.shd.credentialsId}",
+                                                    subscriptionIdVariable: "${config.shd.subId}")]) {
+
+                    def ENV = "test"
+
+                    if (params.RUNPACKER) {
+                        stage ('Build Images') {
+                            withCredentials([usernamePassword(credentialsId: "${config.test.DbPasswordId}", usernameVariable: 'db_user', passwordVariable: 'db_pass'),
+                                            usernamePassword(credentialsId: "${config.gitSP}", usernameVariable: 'githubuser', passwordVariable: 'githubpass'),
+                                            sshUserPrivateKey(credentialsId: 'appuser_ssh_key', keyFileVariable: 'appuser_ssh_key'),
+                                            string(credentialsId: 'vendor_sas_token', variable: 'vendor_sas_token')]) {
+
+                                 // image definition
+                                println "Loading packer image config"
+                                packerInput = readFile('packer/envs/test.json')
+                                packer = new groovy.json.JsonSlurperClassic().parseText(packerInput)
+                            
+                                sigRg = "${packer.gallery_rg}"
+                                sigName = "${packer.gallery_name}"
+
+                                def imgName="${config.test.app2.imageName}"
+                                def imgVersion="${config.test.app2.imageVersion}"
+
+                                
+                                packer(ENV, imgName, imgVersion)    
+                            }
+                        }
+                    }
+                    
+                    if (params.RUNTERRAFORM) {
+                        stage ('Deploy Infra') {
+                            container('terragrunt') {
+                                withCredentials([string(credentialsId: "${config.armKeyId}", variable: 'ARM_ACCESS_KEY'),
+                                                string(credentialsId: "${config.armKeyId}", variable: 'TF_VAR_arm_access_key')]){
+
+                                    terraform(ENV)
+
+                                    stage ("wait 5 minutes before dns records setup") {
+                                        ansiColor('xterm') {
+                                            echo 'Waiting 5 minutes before dns records setup'
+                                            sleep 300 // seconds
+                                        }
+                                    }
+
+                                    dns(ENV)   
+                                }
+                            }
+                        }
+                    }
+
+                    if (params.RUNANSIBLE && params.RUNTERRAFORM) {
+                        stage ('Application Post config Approval') {
+                            userInput = input(
+                                id: 'runAnsibleDeployment', 
+                                message: 'would you like to proceed with the Application Post config?', 
+                                parameters: [ 
+                                    [
+                                        $class: 'BooleanParameterDefinition',
+                                        defaultValue: false,
+                                        description: 'Application Post config',
+                                        name: 'confirm Application Post config'
+                                    ] 
+                                ]
+                            )
+                        }
+                    } else {
+                        userInput = true
+                    }
+                    
+                    if (params.RUNANSIBLE) {
+                        if (userInput == true) {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'appuser_ssh_key', keyFileVariable: 'appuser_ssh_key'),
+                                            string(credentialsId: "${config.test.blobfuse}", variable: 'blobfuse_sas_token'),
+                                            usernamePassword(credentialsId: "${config.worldcheck}", usernameVariable: 'wc_user', passwordVariable: 'wc_pass'),
+                                            usernamePassword(credentialsId: "${config.test.oauthapp2}", usernameVariable: 'app2_oauth_client_id', passwordVariable: 'app2_oauth_secret')]){
+                                ansible(ENV)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (env.BRANCH_NAME == "main" ) {
+                withCredentials([azureServicePrincipal(credentialsId: "${config.prd.credentialsId}",
+                                                        subscriptionIdVariable: "${config.subscription}",
+                                                        clientIdVariable: "${config.clientId}",
+                                                        clientSecretVariable: "${config.clientSecret}",
+                                                        tenantIdVariable: "${config.tenantId}"),
+                                azureServicePrincipal(credentialsId: "${config.prd.credentialsId}",
+                                                        subscriptionIdVariable: "TF_VAR_subscription_id"),
+                                azureServicePrincipal(credentialsId: "${config.prd.packerCredentialsId}",
+                                                        subscriptionIdVariable: "${config.subscription}",
+                                                        clientIdVariable: "${config.packerClientId}",
+                                                        clientSecretVariable: "${config.packerClientSecret}",
+                                                        tenantIdVariable: "${config.tenantId}"),
+                                azureServicePrincipal(credentialsId: "${config.shp.credentialsId}",
+                                                    subscriptionIdVariable: "${config.shp.subId}")]) {
+
+                    def ENV = "prd"
+                    
+                    if (params.RUNPACKER) {
+                        stage ('Build Images') {
+                            withCredentials([usernamePassword(credentialsId: "${config.prd.DbPasswordId}", usernameVariable: 'db_user', passwordVariable: 'db_pass'),
+                                            usernamePassword(credentialsId: "${config.gitSP}", usernameVariable: 'githubuser', passwordVariable: 'githubpass'),
+                                            sshUserPrivateKey(credentialsId: 'appuser_ssh_key_prd', keyFileVariable: 'appuser_ssh_key'),
+                                            string(credentialsId: 'vendor_sas_token', variable: 'vendor_sas_token')]) {
+
+                                    // image definition
+                                println "Loading packer image config"
+                                packerInput = readFile('packer/envs/prd.json')
+                                packer = new groovy.json.JsonSlurperClassic().parseText(packerInput)
+                            
+                                sigRg = "${packer.gallery_rg}"
+                                sigName = "${packer.gallery_name}"
+
+                                def imgName="${config.prd.app2.imageName}"
+                                def imgVersion="${config.prd.app2.imageVersion}"
+
+                                
+                                packer(ENV, imgName, imgVersion)    
+                            }
+                        }
+                    }
+                    
+                    if (params.RUNTERRAFORM) {
+                        stage ('Deploy Infra') {
+                            container('terragrunt') {
+                                withCredentials([string(credentialsId: "${config.armKeyId}", variable: 'ARM_ACCESS_KEY'),
+                                                string(credentialsId: "${config.armKeyId}", variable: 'TF_VAR_arm_access_key')]){
+
+                                    terraform(ENV)
+
+                                    stage ("wait 5 minutes before dns records setup") {
+                                        ansiColor('xterm') {
+                                            echo 'Waiting 5 minutes before dns records setup'
+                                            sleep 300 // seconds
+                                        }
+                                    }
+
+                                    dns(ENV)   
+                                }
+                            }
+                        }
+                    }
+
+                    if (params.RUNANSIBLE && params.RUNTERRAFORM) {
+                        stage ('Application Post config Approval') {
+                            userInput = input(
+                                id: 'runAnsibleDeployment', 
+                                message: 'would you like to proceed with the Application Post config?', 
+                                parameters: [ 
+                                    [
+                                        $class: 'BooleanParameterDefinition',
+                                        defaultValue: false,
+                                        description: 'Application Post config',
+                                        name: 'confirm Application Post config'
+                                    ] 
+                                ]
+                            )
+                        }
+                    } else {
+                        userInput = true
+                    }
+
+                    if (params.RUNANSIBLE) {
+                        if (userInput == true) {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'appuser_ssh_key_prd', keyFileVariable: 'appuser_ssh_key_prd'),
+                                                string(credentialsId: "${config.prd.blobfuse}", variable: 'blobfuse_sas_token'),
+                                                usernamePassword(credentialsId: "${config.worldcheck}", usernameVariable: 'wc_user', passwordVariable: 'wc_pass'),
+                                                usernamePassword(credentialsId: "${config.emailApi}", usernameVariable: 'emailApiUser', passwordVariable: 'emailApiPass'),
+                                                usernamePassword(credentialsId: "${config.prd.oauthapp2}", usernameVariable: 'app2_oauth_client_id', passwordVariable: 'app2_oauth_secret')]){
+                                ansible(ENV)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch(error) {
+            currentBuild.result = "FAILED"
+            throw error
+        }
+    }
+}
+
+
+def packer(ENV, imgName, imgVersion) { 
+    container('curl') {
+        sh """
+            curl -X POST -d "grant_type=client_credentials&client_id=$ARM_CLIENT_ID&client_secret=$ARM_CLIENT_SECRET&resource=https%3A%2F%2Fmanagement.azure.com%2F" https://login.microsoftonline.com/$ARM_TENANT_ID/oauth2/token > token.json
+        """
+        def tokenFile = readFile('token.json')
+        def token = new groovy.json.JsonSlurperClassic().parseText(tokenFile).access_token
+
+        sh """
+            curl -X GET -H "Authorization: Bearer $token" -H "Content-Type: application/json" https://management.azure.com/subscriptions/$TF_VAR_subscription_id_dev/resourceGroups/$sigRg/providers/Microsoft.Compute/galleries/$sigName/images/$imgName/versions/$imgVersion?api-version=2019-12-01 > img.json
+        """
+
+        sh """
+            cat ${appuser_ssh_key} > ./appuser_ssh_key
+            chmod 600 ./appuser_ssh_key
+        """
+    }
+    
+    container('packer') {
+        def imgFile = readFile('img.json')
+        def imgData = new groovy.json.JsonSlurperClassic().parseText(imgFile)
+        if (imgData.error != null) { // North img does not exist
+            sh """
+                export imgName=${imgName}
+                export imgVersion=${imgVersion}
+
+                ./scripts/deploy-${ENV}.sh app2 -packer
+            """
+        } else {
+            def imgVersion_FromRequest = imgData.name
+            println "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+            println "+ The image version '$imgVersion_FromRequest' already exists in '$imgName' definition in '$sigName' shared gallery."
+            println "+ A new image wont be built again."
+            println "+ Hint: You can bump the image version to build a new image."
+            println "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+        }
+    }
+}
+
+def terraform(ENV) {
+    stage ('Terraform Init MAIN') {
+        ansiColor('xterm') {
+            sh """
+                chmod +x ./scripts/deploy-${ENV}.sh
+                ./scripts/deploy-${ENV}.sh MAIN_app2 -init 
+            """
+        }
+    }
+
+    stage ('Terraform plan MAIN') {
+        ansiColor('xterm') {
+            sh """
+                chmod +x ./scripts/deploy-${ENV}.sh
+                ./scripts/deploy-${ENV}.sh MAIN_app2 -plan 
+            """
+        }
+        script {
+            ansiColor('xterm'){
+                def mainplan_exitCode = sh(
+                script: '''head -n 1 ./terraform/MAIN_app2/MAIN_app2-tfplan-exitcode''',
+                returnStdout: true
+                ).trim()
+                echo "Terraform Plan Exit Code: ${mainplan_exitCode}"
+
+                if ("${mainplan_exitCode}" == "0") {
+                    echo "No changes. Infrastructure is up-to-date!"
+                    currentBuild.result = 'SUCCESS'
+                }
+                if ("${mainplan_exitCode}" == "1") {
+                    throw "Terraform planned has failed!"
+                    currentBuild.result = 'FAILURE'
+                }
+                if ("${mainplan_exitCode}" == "2") {
+                    echo "Changes have been noticed!"
+                    mainapply = true
+                }
+            }
+        }
+    }
+
+    if (mainapply == true) {
+        stage ('Terraform apply MAIN') {
+            ansiColor('xterm') {
+                sh """
+                    chmod +x ./scripts/deploy-${ENV}.sh
+                    ./scripts/deploy-${ENV}.sh MAIN_app2 -autoapply 
+                """
+            }
+        }
+
+        stage ("wait 2 minutes for sp creation") {
+            ansiColor('xterm') {
+                echo 'Waiting 2 minutes for sp creation'
+                sleep 120 // seconds
+            }
+        }
+    }
+
+    stage ('Terraform Init') {
+        ansiColor('xterm') {
+            sh """
+                chmod +x ./scripts/deploy-${ENV}.sh
+                ./scripts/deploy-${ENV}.sh app2 -init 
+            """
+        }
+    }
+    
+    stage ('Terraform plan') {
+        ansiColor('xterm') {
+            sh """
+                chmod +x ./scripts/deploy-${ENV}.sh
+                ./scripts/deploy-${ENV}.sh app2 -plan 
+            """
+        }
+        script {
+            ansiColor('xterm'){
+                def plan_exitCode = sh(
+                script: '''head -n 1 ./terraform/app2/app2-tfplan-exitcode''',
+                returnStdout: true
+                ).trim()
+                echo "Terraform Plan Exit Code: ${plan_exitCode}"
+
+                if ("${plan_exitCode}" == "0") {
+                    echo "No changes. Infrastructure is up-to-date!"
+                    currentBuild.result = 'SUCCESS'
+                }
+                if ("${plan_exitCode}" == "1") {
+                    throw "Terraform planned has failed!"
+                    currentBuild.result = 'FAILURE'
+                }
+                if ("${plan_exitCode}" == "2") {
+                    echo "Changes have been noticed!"
+                    apply = true
+                }
+            }
+        }
+    }
+
+    if (apply == true) {
+        stage ('Terraform Apply Approval') {
+            userInput = input(
+                id: 'runTFApply', 
+                message: 'would you like to proceed with a Terraform apply?', 
+                parameters: [ 
+                    [
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false,
+                        description: 'TF Apply',
+                        name: 'confirm Terraform Apply'
+                    ] 
+                ]
+            )
+        }
+
+        stage ('Terraform apply') {
+            if (userInput == true) {
+                ansiColor('xterm') {
+                    sh """
+                        chmod +x ./scripts/deploy-${ENV}.sh
+                        ./scripts/deploy-${ENV}.sh app2 -apply 
+                    """
+                }
+            } else {
+                error "Deployment aborted!!!"
+            }    
+        }
+    }
+}
+
+def dns(ENV) {
+    stage ('DNS records setup') {
+        // retreive ip addresses
+        container ('ansible') {
+            sh """
+                ./shell_scripts/create-inventory-ip.sh ${ARM_CLIENT_ID} ${ARM_CLIENT_SECRET} ${ARM_TENANT_ID} ${ARM_SUBSCRIPTION_ID} ${ENV} n app2
+
+                ./shell_scripts/inventory_display.sh ${ENV} n app2
+
+                if [ "${ENV}" == "test" ] || [ "${ENV}" == "prd" ]; then
+
+                    ./shell_scripts/create-inventory-ip.sh ${ARM_CLIENT_ID} ${ARM_CLIENT_SECRET} ${ARM_TENANT_ID} ${ARM_SUBSCRIPTION_ID} ${ENV} c app2
+                
+                    ./shell_scripts/inventory_display.sh ${ENV} c app2
+                fi
+            """
+        }
+        // setup dns records for deployed vms
+        echo "please set DNS records manually for now"
+    }
+}
+
+def ansible(ENV){
+    stage ('Post Config') {
+        container('ansible') {
+            sh """
+                if [ "${ENV}" == "prd" ]; then
+                    cat ${appuser_ssh_key_prd} > ./appuser_ssh_key_prd
+                    chmod 600 ./appuser_ssh_key_prd
+                else
+                    cat ${appuser_ssh_key} > ./appuser_ssh_key
+                    chmod 600 ./appuser_ssh_key
+                fi
+
+                inventory="ansible/inventory/current/inventory_${ENV}.ini"
+               # ansible-playbook ansible/app2/app/app2-fileshare.yml -i \$inventory -e "app2_sa_pass=${sa_pass}" -e "sa_name=${app2sa}" -e "fileshare=${ENV}"
+                ansible-playbook ansible/components/promtail.yml -i \$inventory -l app2
+                ansible-playbook ansible/app2/app/batch.yml -i \$inventory
+                ansible-playbook ansible/app2/app/worldcheck.yml -i \$inventory -e "WC_user=${wc_user}" -e "WC_pass=${wc_pass} -e "emailApiUser=${emailApiUser}" -e "emailApiPass=${emailApiPass}"
+                
+                if [ "${ENV}" == "test" ] || [ "${ENV}" == "prd" ]; then
+                    ansible-playbook ansible/app2/app/batch-blobfuse.yml -i \$inventory -e "blobfuse_sa=${app2sa}" -e "blobfuse_sas_token=${blobfuse_sas_token}"
+                    ansible-playbook ansible/app2/app/batch-OAuth.yml -i \$inventory -e "tenant_id=${ARM_TENANT_ID}" -e "oauth_client_id=${app2_oauth_client_id}"
+                fi
+        
+                ansible-playbook ansible/app2/app/rt.yml -i \$inventory
+            """
+        }
+    }
+}

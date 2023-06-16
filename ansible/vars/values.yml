@@ -1,0 +1,11 @@
+java_bin: "jdk-11.0.10_linux-x64_bin.rpm"
+test_root_cert: ca-test-root.der
+prd_root_cert: ca-prd-root.der
+certs_url: ""
+bin_url: ""
+proxy: ""
+kafka_bin_url: ""
+custom_admin_user: "custom"
+repo_url: ""
+repo_name: ""
+tomcat_url: ""

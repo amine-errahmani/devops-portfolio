@@ -1,0 +1,11 @@
+[deployment-client]
+# Set the phoneHome at the end of the PS engagement
+# 10 minutes
+# phoneHomeIntervalInSecs = 600
+sslVerifyServerCert = true
+caCertFile = $SPLUNK_HOME/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/auth/cacert.pem
+sslAltNameToCheck = {{ splunk_url }}
+
+[target-broker:deploymentServer]
+# Change the targetUri
+targetUri = {{ splunk_url }}:{{ splunk_port }}

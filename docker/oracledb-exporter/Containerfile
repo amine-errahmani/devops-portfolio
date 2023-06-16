@@ -1,0 +1,48 @@
+FROM container-registry.oracle.com/os/oraclelinux:9-slim
+
+LABEL \
+    schema-version=${VERSION} \
+    build-date=${BUILD_DATE} \
+    maintainer="amine-errahmani" \
+    description="Oracle Prometheus Exporter" \
+    repository="https://github.com/iamseth/oracledb_exporter" \
+    bin_relase=${EXPORTER_VERSION} \
+    oracle_client_version="19.16-basic"
+
+RUN microdnf upgrade -y\
+        --nodocs \
+        --noplugins \
+        --security; \
+    \
+    microdnf install -y \
+        wget \
+        libaio \
+        libnsl; \
+    \
+    wget https://download.oracle.com/otn_software/linux/instantclient/1916000/oracle-instantclient19.16-basic-19.16.0.0.0-1.x86_64.rpm \
+        -O /tmp/oracle-instantclient.rpm; \
+    \
+    rpm -ivh /tmp/oracle-instantclient.rpm; \
+    \
+    microdnf uninstall -y \
+        wget; \
+    rm -rf /tmp/oracle-instantclient.rpm; \
+    microdnf clean all;
+
+RUN useradd exporter -c "Oracle DB exporter"
+
+COPY oracledb_exporter /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/oracledb_exporter
+
+USER exporter
+
+ENV LD_LIBRARY_PATH "/usr/lib/oracle/19.16/client64/lib"
+
+WORKDIR /oracledb_exporter
+
+COPY --chown=exporter:exporter config/default-metrics.toml .
+
+EXPOSE 9161
+
+CMD ["/usr/local/bin/oracledb_exporter", "--log.level=error"]

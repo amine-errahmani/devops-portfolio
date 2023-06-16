@@ -1,0 +1,10 @@
+[sslConfig]
+enableSplunkdSSL = true
+requireClientCert = false
+sslPassword = {{ splunk_ssl_pass }}
+serverCert = $SPLUNK_HOME/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/auth/server.pem
+sslRootCAPath = $SPLUNK_HOME/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/auth/cacert.pem
+caCertFile = $SPLUNK_HOME/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/auth/cacert.pem
+
+[applicationsManagement]
+allowInternetAccess = false

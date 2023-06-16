@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multitool
+spec:
+  selector:
+    matchLabels:
+      app: multitool
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: multitool
+    spec:
+      containers:
+      - image: praqma/network-multitool
+        command: ["sh", "-c", "tail -f /dev/null"]
+        name: multitool
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
+        securityContext:
+          capabilities:
+            drop: ["NET_RAW"]
+          allowPrivilegeEscalation: false
+

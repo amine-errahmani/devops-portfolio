@@ -1,0 +1,45 @@
+---
+- name: Java 11 certs
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+  
+  tasks:
+    - name: dev certs
+      block:
+        - name: download certificates
+          get_url:
+            url: "{{ item }}"
+            dest: "{{ certs_dest }}"
+          with_items:
+            - "{{ certs_url }}{{ test_root_cert }}{{ sas_token }}"
+            - "{{ certs_url }}{{ test_int_cert_app }}{{ sas_token }}"
+            - "{{ certs_url }}{{ test_int_cert_inf }}{{ sas_token }}"
+        
+        - name: add certificates to java
+          shell: |
+            keytool -import -alias devrootca -cacerts -file {{ certs_dest }}{{ test_root_cert }} -storepass changeit -noprompt
+            keytool -import -alias devintcaapp -cacerts -file {{ certs_dest }}{{ test_int_cert_app }} -storepass changeit -noprompt
+            keytool -import -alias devintcainf -cacerts -file {{ certs_dest }}{{ test_int_cert_inf }} -storepass changeit -noprompt
+      when: env != "prd"
+
+    - name: prod certs
+      block:
+        - name: download certificates
+          get_url:
+            url: "{{ item }}"
+            dest: "{{ certs_dest }}"
+            force: true
+          with_items:
+            - "{{ certs_url }}{{ prd_root_cert }}{{ sas_token }}"
+            - "{{ certs_url }}{{ prd_int_cert_app }}{{ sas_token }}"
+            - "{{ certs_url }}{{ prd_int_cert_inf }}{{ sas_token }}"
+        
+        - name: add certificates to java
+          shell: |
+            keytool -import -alias prodrootca -cacerts -file {{ certs_dest }}{{ prd_root_cert }} -storepass changeit -noprompt
+            keytool -import -alias prodintcaapp -cacerts -file {{ certs_dest }}{{ prd_int_cert_app }} -storepass changeit -noprompt
+            keytool -import -alias prodintcainf -cacerts -file {{ certs_dest }}{{ prd_int_cert_inf }} -storepass changeit -noprompt
+      when: env == "prd"

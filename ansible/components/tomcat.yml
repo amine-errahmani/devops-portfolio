@@ -1,0 +1,53 @@
+---
+- name: Tomcat install and config
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+
+  tasks:
+    - name: add tomcat group
+      group:
+        name: tomcat
+
+    - name: add tomcat user
+      user:
+        name: tomcat
+        group: tomcat
+        home: /user/share/tomcat
+        createhome: no
+
+    - name: create /opt/tomcat directory
+      file:
+        path: /opt/tomcat
+        state: directory
+        mode: 0755
+
+    - name: download & unarchive
+      unarchive:
+        src: "{{ tomcat_url }}"
+        dest: /opt/tomcat
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+
+    - name: Change ownership
+      file:
+        path: /opt/tomcat
+        owner: tomcat
+        group: tomcat
+        mode: "u+rwx,g+rx,o=rx"
+        recurse: yes
+        state: directory
+
+    - name: Copy Tomcat service file
+      copy:
+        src: tomcat.service
+        dest: /etc/systemd/system/
+        mode: 0755
+
+    - name: Start and enable Tomcat service
+      systemd:
+        name: tomcat
+        enabled: yes
+        daemon_reload: yes

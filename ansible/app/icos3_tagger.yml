@@ -1,0 +1,35 @@
+---
+- name: Add tags to install.yml playbook
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: remove kafka_host definition
+      lineinfile:
+        path: "{{ file_path }}/install.yml"
+        regexp: "{{ item }}"
+        state: absent
+      with_items:
+        - ".*kafka_host:.*"
+        - ".*src.*install_dir.*config.*dest.*config.*"
+
+    - name: remove kafka_servers from hosts
+      replace:
+        path: "{{ file_path }}/install.yml"
+        regexp: "kafka_servers,"
+        replace: ""
+        
+    - name: disable delete local dump block
+      lineinfile:
+        path: "{{ file_path }}/roles/dms-neo4j/tasks/upgrade.yml"
+        line: "      when: delete_local_dump is defined"
+        insertafter: "      run_once: true"
+
+    - name: amend env.sh template
+      replace:
+        path: "{{ file_path }}/roles/dms-karaf/templates/env.cfg.j2"
+        regexp: "{{ item.regex }}"
+        replace: "{{ item.replace }}"
+      with_items:
+        - { regex: app3_PASSWORD=(.*), replace: app3_PASSWORD='\1' }
+        - { regex: BPM_PASSWORD=(.*), replace: BPM_PASSWORD='\1' }

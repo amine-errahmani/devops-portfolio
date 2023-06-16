@@ -1,0 +1,138 @@
+---
+- name: linux app server OS Config
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+
+  tasks:
+    - name: Install system tools
+      yum: 
+        pkg: ['curl', 'wget', 'jq', 'tree', 'git', 'telnet', 'cifs-utils', 'nfs-utils', 'lsof', 'ghostscript', 'dos2unix', 'nc', 'tar']  
+        state: latest
+        lock_timeout: 300
+
+    - name: "create group {{ custom_admin_user }}"
+      group:
+        name: "{{ custom_admin_user }}"
+  
+    - name: "sudo rights for {{ custom_admin_user }} group"
+      lineinfile:
+        dest: /etc/sudoers
+        line: "%{{ custom_admin_user }} ALL=(ALL) NOPASSWD:ALL"
+        state: present
+    
+    - name: "create {{ custom_admin_user }} user" 
+      user:
+        name: "{{ custom_admin_user }}"
+        create_home: yes
+        group: "{{ custom_admin_user }}"
+        shell: /bin/bash
+        state: present
+
+    - name: "crontab rights for {{ custom_admin_user }}"
+      lineinfile:
+        dest: /etc/cron.allow
+        line: "{{ custom_admin_user }}"
+        state: present
+    
+    - name: create .ssh folder
+      file:
+        path: "/home/{{ custom_admin_user }}/.ssh"
+        state: directory
+        owner: "{{ custom_admin_user }}"
+        group: "{{ custom_admin_user }}"
+        
+    - name: create and add public key to authorized_keys file
+      lineinfile:
+        dest: "/home/{{ custom_admin_user }}/.ssh/authorized_keys"
+        line: "{{ ssh_key_pub }}"
+        state: present
+        owner: "{{ custom_admin_user }}"
+        group: "{{ custom_admin_user }}"
+        mode: 0644
+        create: yes
+
+    - name: disable firewall service
+      service:
+        name: firewalld
+        state: stopped
+        enabled: False
+
+    - name: Set timezone to Asia/Dubai
+      timezone:
+        name: Asia/Dubai
+
+    - name: add proxy exclusions variable
+      lineinfile:
+        dest: /etc/environment
+        line: "{{ item }}"
+        state: present
+      with_items:
+        - "no_proxy={{ proxy_exclusions }}"
+        - "NO_PROXY={{ proxy_exclusions }}"
+
+    - name: create datadisk folder
+      file: 
+        path: /datadisk
+        state: directory
+        owner: "{{ custom_admin_user }}"
+        group: "{{ custom_admin_user }}"
+
+    - name: create vendor-solution folder
+      file: 
+        path: /datadisk/vendor-solution/
+        state: directory
+        owner: "{{ custom_admin_user }}"
+        group: "{{ custom_admin_user }}"
+    
+    - name: clone config files repo
+      git:
+        repo: "https://{{ githubuser }}:{{ githubpass }}@{{ repo_url }}"
+        dest: "/datadisk/{{ repo_name }}/"  
+      become_user: "{{ custom_admin_user }}"
+
+    - name: set system wide Max Open Files parameters
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "fs.file-max=65536"
+        state: present
+    
+    - name: set user Max Open Files & Max number of processes parameters
+      lineinfile:
+        path: /etc/security/limits.conf
+        line: "{{ item }}"
+        state: present
+      with_items:
+        - "@{{ custom_admin_user }}  hard  nofile  65536"
+        - "@{{ custom_admin_user }}  soft  nofile  65536"
+        - "@{{ custom_admin_user }}  hard  nproc  65536"
+        - "@{{ custom_admin_user }}  soft  nproc  65536"
+        
+    - name: adding line to /etc/pam.d/login
+      lineinfile:
+        path: /etc/pam.d/login
+        line: "session required pam_limits.so"
+        state: present
+
+    - name: check if ssh key is present
+      stat: 
+        path: "/tmp/{{ ssh_key }}"
+      register: ssh_key_file
+    
+    - name: copy ssh key file
+      copy:
+        src: "/tmp/{{ ssh_key }}"
+        dest: "/home/{{ custom_admin_user }}/.ssh/id_rsa"
+        remote_src: yes
+        owner: "{{ custom_admin_user }}"
+        group: "{{ custom_admin_user }}"
+        mode: 0600
+      when: ssh_key_file.stat.exists
+
+    - name: cleanup ssh key file
+      file:
+        path: "/tmp/{{ ssh_key }}"
+        state: absent
+      when: ssh_key_file.stat.exists

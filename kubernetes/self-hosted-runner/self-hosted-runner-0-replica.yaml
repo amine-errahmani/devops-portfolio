@@ -1,0 +1,29 @@
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
+metadata:
+  name: custom-test-runner-deployment
+spec:
+  template:
+    spec:
+      organization: github-org
+      labels:
+        - runner-custom-test
+      image: github-actions-base-image:latest
+      imagePullSecrets: 
+        - name: crcreds
+---
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: HorizontalRunnerAutoscaler
+metadata:
+  name: custom-test-runner-deployment-autoscaler
+spec:
+  scaleTargetRef:
+    name: custom-test-runner-deployment
+  minReplicas: 0
+  maxReplicas: 10
+  metrics:
+  - type: PercentageRunnersBusy
+    scaleUpThreshold: '0.75'
+    scaleDownThreshold: '0.3'
+    scaleUpAdjustment: 1
+    scaleDownAdjustment: 1

@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: az-test
+spec:
+  selector:
+    matchLabels:
+      app: az-test
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: az-test
+    spec:
+      containers:
+      - image: mcr.microsoft.com/azure-cli
+        command: ["sh", "-c", "tail -f /dev/null"]
+        name: az-test
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
+        securityContext:
+          capabilities:
+            drop: ["NET_RAW"]
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: azurefile
+          mountPath: /tmp
+      volumes:
+      - name: azurefile
+        persistentVolumeClaim:
+          claimName: az-test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: az-test
+spec:
+  accessModes:
+   - ReadWriteMany
+  resources:
+   requests:
+    storage: 1Gi

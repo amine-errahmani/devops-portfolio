@@ -1,0 +1,12 @@
+---
+
+- name: Check for mdatp package is installed installed
+  yum:
+    list: qualys-cloud-agent
+  register: yum_list
+
+- name: Info debug
+  debug:
+    msg: "Not installed"
+  when: yum_list.results | selectattr("yumstate", "match", "installed") | list | length == 0
+

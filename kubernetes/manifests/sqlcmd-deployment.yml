@@ -1,0 +1,27 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlcmd
+spec:
+  selector:
+    matchLabels:
+      app: sqlcmd
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: sqlcmd
+    spec:
+      containers:
+      - image: mcr.microsoft.com/mssql-tools
+        command: ["sh", "-c", "tail -f /dev/null"]
+        name: sqlcmd
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+

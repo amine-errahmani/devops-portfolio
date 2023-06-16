@@ -1,0 +1,8 @@
+---
+# handlers file for splunk_forwarder
+
+- name: Enable splunk service
+  command: "/opt/splunkforwarder/bin/splunk enable boot-start --no-prompt --answer-yes --accept-license"
+
+- name: Start splunk service
+  command: "/opt/splunkforwarder/bin/splunk start"

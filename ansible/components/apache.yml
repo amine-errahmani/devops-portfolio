@@ -1,0 +1,26 @@
+---
+- name: Apache httpd install and config
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+
+  tasks:
+    - name: Install package httpd
+      yum: 
+        pkg: httpd
+        state: latest 
+
+    - name: set boolan httpd_can_network_connect
+      shell: "setsebool -P httpd_can_network_connect 1"
+      become: yes
+
+    - name: start httpd service
+      service:
+        name: httpd
+        state: started
+        enabled: True
+
+
+

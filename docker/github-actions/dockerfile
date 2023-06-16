@@ -1,0 +1,146 @@
+FROM summerwind/actions-runner:latest
+
+ARG MAVEN_VERSION=3.9.1
+
+# Install OpenJDK-17
+RUN sudo apt-get update && \
+    sudo apt-get install -y openjdk-17-jdk && \
+    sudo apt-get clean
+
+# Setup JAVA_HOME for maven
+ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64/
+
+# Download and install maven
+RUN sudo apt-get update -y \
+  && wget --no-check-certificate https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz -P /tmp \
+  && sudo tar xf /tmp/apache-maven-*.tar.gz -C /opt \
+  && sudo ln -s /opt/apache-maven-${MAVEN_VERSION} /opt/maven \
+  && sudo rm -rf /var/lib/apt/lists/*
+
+# Export maven path as env variable so applications requiring maven can access it
+RUN mkdir -p ~/.local/bin/ \
+  && ln -s /opt/apache-maven-${MAVEN_VERSION}/bin/mvn* ~/.local/bin \
+  && mvn --version
+
+#download and install Kubectl
+RUN cd /usr/local/bin/ \
+  && sudo curl -k -LO "https://dl.k8s.io/release/$(curl -k -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+  && sudo curl -k -LO "https://dl.k8s.io/$(curl -k -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256" \
+  && echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check \
+  && sudo chmod 0755 /usr/local/bin/kubectl 
+
+#download and install Kubelogin
+RUN wget -q https://github.com/Azure/kubelogin/releases/download/v0.0.20/kubelogin-linux-amd64.zip -P /tmp/ --no-check-certificate\
+  && sudo unzip -j /tmp/kubelogin-linux-amd64.zip "bin/linux_amd64/kubelogin" -d "/usr/local/bin/"
+
+#download and install Helm
+RUN wget -q https://get.helm.sh/helm-v3.11.3-linux-amd64.tar.gz -P /tmp/ --no-check-certificate\
+  && cd /usr/local/bin \
+  && sudo tar -zxvf /tmp/helm-v3.11.3-linux-amd64.tar.gz linux-amd64/helm --strip-components 1
+
+#download and install Helm-diff plugins
+RUN git config --global http.sslverify false \
+  && git clone https://github.com/databus23/helm-diff.git /home/runner/.local/share/helm/helm-diff/\
+  && sed -i "s/curl -s/curl -k -s/" /home/runner/.local/share/helm/helm-diff/install-binary.sh \
+  && helm plugin install /home/runner/.local/share/helm/helm-diff/
+
+#download and install Helm-secrets plugins
+RUN git clone https://github.com/jkroepke/helm-secrets.git --branch=v3.12.0 /home/runner/.local/share/helm/helm-secrets/ \
+  && helm plugin install /home/runner/.local/share/helm/helm-secrets/
+
+#download and install hashicorp vault cli
+RUN wget -q https://releases.hashicorp.com/vault/1.11.4/vault_1.11.4_linux_amd64.zip -P /tmp/ --no-check-certificate\
+  && sudo unzip /tmp/vault_1.11.4_linux_amd64.zip -d /usr/local/bin/
+
+# Install docker buildx
+COPY --from=docker/buildx-bin:latest /buildx /usr/libexec/docker/cli-plugins/docker-buildx
+RUN docker buildx version
+
+# Install tfenv tool
+RUN git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv \
+  && ln -s ~/.tfenv/bin/* ~/.local/bin
+
+# Install Terraform versions and set default to latest
+RUN tfenv install 1.0.6 \
+  && tfenv install 1.0.9 \
+  && tfenv install 1.2.5 \
+  && tfenv install \
+  && tfenv use latest
+
+# Install Terragrunt
+RUN cd /tmp \
+  && wget -q --show-progress https://github.com/gruntwork-io/terragrunt/releases/download/v0.45.1/terragrunt_linux_amd64 \
+  && mv terragrunt_linux_amd64 ~/.local/bin/terragrunt \
+  && chmod u+x ~/.local/bin/terragrunt \
+  && cd -
+
+# Install azure-cli
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash 
+
+# Install Packer
+RUN cd /tmp \
+  && wget -q --show-progress https://releases.hashicorp.com/packer/1.7.7/packer_1.7.7_linux_amd64.zip \
+  && unzip packer_1.7.7_linux_amd64.zip \
+  && mv packer ~/.local/bin \
+  && cd -
+
+# Install powershell
+RUN sudo apt-get update -y \
+  && sudo apt-get install -y wget apt-transport-https software-properties-common \
+  && cd /tmp \
+  && wget -q --show-progress "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" \
+  && sudo dpkg -i packages-microsoft-prod.deb \
+  && sudo apt-get update -y \
+  && sudo apt-get install -y powershell \
+  && cd -
+
+# Install and config ansible & ansible-lint
+RUN pip install ansible ansible-lint \
+  && sudo mkdir -p /etc/ansible \
+  && echo 'localhost' | sudo tee -a /etc/ansible/hosts \
+  && echo """\
+    StrictHostKeyChecking no\n\
+    UserKnownHostsFile=/dev/null\n\
+""" | sudo tee -a /etc/ssh/ssh_config \
+  && cat /etc/ssh/ssh_config
+
+# Install sqlcmd (SQL Server command line tools)
+RUN sudo curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add - \
+  && sudo curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list \
+  && sudo apt-get update \
+  && sudo ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev \
+  && sudo ln -s /opt/mssql-tools/bin/sqlcmd ~/.local/bin
+
+# Install sqlplus (oracle db command line tools)
+RUN cd /tmp \
+  && wget -q https://download.oracle.com/otn_software/linux/instantclient/214000/instantclient-basic-linux.x64-21.4.0.0.0dbru.zip --no-check-certificate \
+  && wget -q https://download.oracle.com/otn_software/linux/instantclient/214000/instantclient-sqlplus-linux.x64-21.4.0.0.0dbru.zip --no-check-certificate \
+  && sudo mkdir -p /opt/oracle \
+  && sudo unzip -d /opt/oracle /tmp/instantclient-basic-linux.x64-21.4.0.0.0dbru.zip \
+  && sudo unzip -d /opt/oracle /tmp/instantclient-sqlplus-linux.x64-21.4.0.0.0dbru.zip \
+  && sudo apt-get install libaio1 libaio-dev \
+  && sudo ln -s /opt/oracle/instantclient*/sqlplus ~/.local/bin \
+  && echo "LD_LIBRARY_PATH=/opt/oracle/instantclient_21_4" | sudo tee -a /etc/environment \
+  && sudo sed -i "s@PATH=@PATH=/opt/oracle/instantclient_21_4:@" /etc/environment \
+  && echo "export LD_LIBRARY_PATH=/opt/oracle/instantclient_21_4:$LD_LIBRARY_PATH" >> ~/.bashrc \
+  && echo "export PATH=$LD_LIBRARY_PATH:$PATH" >> ~/.bashrc \
+  && cd -
+  
+# Install sbt (Scala Build tools) for data team usage
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list \
+  && echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list \
+  && curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add \
+  && sudo apt-get update \
+  && sudo apt-get install sbt=1.6.0
+
+#install yq
+RUN cd /tmp \
+  && YQ_VERSION='v4.34.1' \
+  && YQ_BINARY='yq_linux_amd64' \
+  && wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz \
+  && sudo tar xzf ${YQ_BINARY}.tar.gz \
+  && sudo mv ${YQ_BINARY} /usr/local/bin/yq \
+  && cd -
+
+# clean-up
+RUN sudo rm -rf /tmp/*

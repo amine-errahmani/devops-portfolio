@@ -1,0 +1,58 @@
+---
+# tasks file for splunk forwarder
+
+- name: Check current installation
+  stat:
+    path: /opt/splunkforwarder/etc
+  register: splunk_path
+
+- block:
+  - name: Create splunk directories
+    file:
+      path: /opt/splunkforwarder/etc/system/local/
+      recurse: true
+      state: directory
+      mode: 0755
+      owner: root
+      group: root
+
+  - name: Copy apps folder
+    copy:
+      src: "{{ domain }}/apps"
+      dest: /opt/splunkforwarder/etc
+      directory_mode: 0755
+      mode: 0755
+      owner: root
+      group: root
+
+  - name: Copy script for cluster configuration
+    template:
+      src: "{{ item.src }}"
+      dest: "/opt/splunkforwarder/etc/{{ item.dest }}"
+      mode: "0755"
+      owner: root
+      group: root
+    with_items:
+      - {src: user-seed.conf.j2 ,dest: "system/local/user-seed.conf"}
+      - {src: deploymentclient.conf.j2, dest: "apps/{{ prefix }}_sha_suf_nix_deploymentclient/local/deploymentclient.conf"}
+      - {src: outputs.conf.j2 ,dest: "apps/{{ prefix }}_sha_suf_nix_forwarder_outputs/local/outputs.conf"}
+      - {src: server.conf.j2, dest: "apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/local/server.conf" }
+
+  - name: download certs
+    unarchive:
+      src: "{{ bin_url }}{{ splunk_certs_zip }}{{ bin_sas_token }}"
+      dest: "/opt/splunkforwarder/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/"
+      remote_src: yes
+    
+  - name: Extract splunkforwarder archive into /opt
+    unarchive:
+      src: "{{ bin_url }}{{ splunk_bin }}{{ bin_sas_token }}"
+      dest: /opt
+      remote_src: yes
+    notify: 
+      - Enable splunk service
+      - Start splunk service
+
+  when: not splunk_path.stat.exists
+
+

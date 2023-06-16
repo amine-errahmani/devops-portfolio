@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "app1.fullname" . }}-config
+  labels:
+    {{- include "app1.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  application.yml: |
+    server:
+      port: {{ .Values.config.server.port }}
+
+    app2-api:
+      host: {{ .Values.config.app2Api.host }}
+      port: {{ .Values.config.app2Api.port }}
+      path: /webapi/payload
+
+    app7-api-update:
+      host: {{ .Values.config.app7ApiUpdate.host }}
+      port: {{ .Values.config.app7ApiUpdate.port }}
+      path: /api/app9/UpdateBasicCIFDetails
+
+    app7-api-export:
+      host: {{ .Values.config.app7ApiExport.host }}
+      port: {{ .Values.config.app7ApiExport.port }}
+      path: /api/app6/StatusUpdate
+
+    kafka:
+      bootstrapServer: {{ .Values.config.kafkaServer }}  # app3 server IP address, and port
+
+    #  app7 username/Password
+    app7base64Creds: {{ .Values.config.app7base64Creds }}
+
+    logging:
+      level:
+        org:
+          hobsoft:
+            spring:
+              resttemplatelogger:
+                LoggingCustomizer: DEBUG
+          zalando:
+            logbook: TRACE
+          apache:
+            kafka: warn
+      file:
+        name: app1.log
+        path: target/logs/app1.log
+
+    logbook:
+      exclude:
+        - /acttestor/**
+
+    info:
+      name: app1
+
+    spring:
+      application:
+        name: app1
+      boot:
+        admin:
+          client:
+            url: "http://localhost:8081"
+
+    management:
+      trace:
+        http:
+          enabled: true
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+      endpoint:
+        health:
+          show-details: ALWAYS
+    FR_TRX_INSTANT_TimeoutUpdate: 80000000

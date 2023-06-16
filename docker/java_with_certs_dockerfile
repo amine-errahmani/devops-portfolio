@@ -1,0 +1,42 @@
+FROM openjdk:11.0.15-jdk
+
+ARG jar_url
+ARG blob_token
+ARG certs_url
+ARG cert
+ARG BUILD_DATE
+ARG VERSION
+ARG javastorepass
+
+LABEL maintainer="" \
+      org.label-schema.schema-version=${VERSION} \
+      org.label-schema.build-date=${BUILD_DATE} \
+      org.label-schema.name="" \
+      org.label-schema.vcs-url="URL"
+
+RUN apt-get update && \
+    apt-get install -yq tzdata && \
+    ln -fs /usr/share/zoneinfo/Asia/Dubai /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata
+
+RUN apt-get install -y telnet curl git
+
+RUN mkdir -p /app/config
+
+RUN mkdir /app/logs
+
+RUN mkdir /app/certs
+
+RUN curl "${certs_url}${cert}${blob_token}" -o "/app/certs/${cert}"
+
+RUN keytool -import -alias rootcert -keystore $JAVA_HOME/lib/security/cacerts -file /app/certs/cert.der -storepass ${javastorepass} -noprompt
+
+EXPOSE 8080
+
+RUN curl -o /app/app.jar "${jar_url}${blob_token}"
+
+WORKDIR /app/
+
+ENTRYPOINT ["java"]
+
+CMD ["-jar", "/app/app.jar"]

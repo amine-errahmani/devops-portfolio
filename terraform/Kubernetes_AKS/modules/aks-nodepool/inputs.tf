@@ -1,0 +1,10 @@
+variable "nodepool_name" {}
+variable "cluster_id" {}
+variable "node_size" {}
+variable "node_count" {}
+variable "node_max_count" {}
+variable "snet_id" {}
+variable "zones" {}
+variable "spot_instances" {}
+variable "node_taints" {}
+variable "max_pods" {}

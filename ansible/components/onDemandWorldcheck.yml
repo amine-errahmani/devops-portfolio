@@ -1,0 +1,37 @@
+---
+- name: On Demand Worldcheck files download
+  hosts: batch
+
+  tasks:
+    - name: "DL sanctions2 for {{ date_stamp }}"
+      get_url: 
+        url: "{{ sacntions2_url }}"
+        dest: "/mnt/{{ env | lower }}cbuae/wc_daily/{{ date_stamp }}-Sanctions2.csv"
+        username: "{{ WC_user }}" 
+        password: "{{ WC_pass }}"
+      when: sacntions2_url is defined
+      
+    - name: "DL sanctions1 for {{ date_stamp }}"
+      get_url: 
+        url: "{{ sacntions1_url }}"
+        dest: "/mnt/{{ env | lower }}cbuae/wc_daily/{{ date_stamp }}-Sanctions1.csv"
+        username: "{{ WC_user }}" 
+        password: "{{ WC_pass }}"
+      when: sacntions1_url is defined
+      
+    - name: "DL PEP2 for {{ date_stamp }}"
+      get_url: 
+        url: "{{ PEP2_url }}"
+        dest: "/mnt/{{ env | lower }}cbuae/wc_daily/{{ date_stamp }}-PEP2.csv"
+        username: "{{ WC_user }}" 
+        password: "{{ WC_pass }}"
+      when: PEP2_url is defined
+
+    - name: "DL PEP1 for {{ date_stamp }}"
+      get_url: 
+        url: "{{ PEP1_url }}"
+        dest: "/mnt/{{ env | lower }}cbuae/wc_daily/{{ date_stamp }}-PEP1.csv"
+        username: "{{ WC_user }}" 
+        password: "{{ WC_pass }}"
+      when: PEP1_url is defined
+

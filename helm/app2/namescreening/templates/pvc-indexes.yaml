@@ -1,0 +1,13 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "namescreening.fullname"  . }}-indexes
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "namescreening.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: {{ .Values.indexesVolumeSize }}

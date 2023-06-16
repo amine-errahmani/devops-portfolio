@@ -1,0 +1,7 @@
+---
+# vars file for splunk forwarder
+
+bin_url: ''
+splunk_bin: 'splunkforwarder-8.0.4-767223ac207f-Linux-x86_64.tgz'
+
+

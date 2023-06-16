@@ -1,0 +1,42 @@
+{{- if and .Values.ServiceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "oracledb-exporter.fullname" . }}
+  namespace: {{ template "oracledb-exporter.namespace" . }}
+  labels:
+    release: {{ printf "%s" (include "oracledb-exporter.namespace" .) | quote }}
+    app: {{ template "oracledb-exporter.name" . }}
+{{ include "oracledb-exporter.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      instance: {{ template "oracledb-exporter.fullname" . | quote }}
+    #   release: {{ $.Release.Name | quote }}
+  namespaceSelector:
+    matchNames:
+      - {{ printf "%s" (include "oracledb-exporter.namespace" .) | quote }}
+  endpoints:
+  - port: http
+    {{- if .Values.ServiceMonitor.interval }}
+    interval: {{ .Values.ServiceMonitor.interval }}
+    {{- end }}
+    {{- if .Values.ServiceMonitor.scheme }}
+    scheme: {{ .Values.ServiceMonitor.scheme }}
+    {{- end }}
+    {{- if .Values.ServiceMonitor.tlsConfig }}
+    tlsConfig: {{ toYaml .Values.ServiceMonitor.tlsConfig | nindent 6 }}
+    {{- end }}
+    {{- if .Values.ServiceMonitor.bearerTokenFile }}
+    bearerTokenFile: {{ .Values.ServiceMonitor.bearerTokenFile }}
+    {{- end }}
+    path: "/metrics"
+{{- if .Values.ServiceMonitor.metricRelabelings }}
+    metricRelabelings:
+{{ tpl (toYaml .Values.ServiceMonitor.metricRelabelings | indent 6) . }}
+{{- end }}
+{{- if .Values.ServiceMonitor.relabelings }}
+    relabelings:
+{{ toYaml .Values.ServiceMonitor.relabelings | indent 6 }}
+{{- end }}
+{{- end }}

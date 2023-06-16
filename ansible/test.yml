@@ -1,0 +1,43 @@
+---
+- name: local test playbook
+  hosts: 127.0.0.1
+  connection: local
+  # vars:
+  #   kafka: '192.168.1.200'
+
+  tasks:
+    # - name: create distribution folder
+    #   file:
+    #     path: "/home/appuser/.vendor/"
+    #     state: directory
+    #     owner: appuser
+    #     group: vendoradmin
+    #   become_user: appuser
+    #   become: yes
+
+    # - name: increase karaf timeout
+    #   lineinfile:
+    #     path: "external-env.sh"
+    #     line: "{{ item }}"
+    #     state: present
+    #     create: yes
+    #   with_items:
+    #     - "#!/bin/bash"
+    #     - "export KARAF_START_TIMEOUT=600"
+
+
+    # - name: configure app2 endpoint
+    #   replace:
+    #     path: test
+    #     regexp: "{{ item.regex }}"
+    #     replace: "{{ item.replace }}"
+    #   with_items:
+    #     - { regex: '\{\{app2_URL\}\}', replace: "vendorapp2batch.test"}
+
+    - name: amend env.sh template
+      replace:
+        path: "{{ file_path }}/roles/dms-karaf/templates/env.cfg.j2"
+        regexp: "{{ item.regex }}"
+        replace: "{{ item.replace }}"
+      with_items:
+        - { regex: app3_PASSWORD=(.*), replace: app3_PASSWORD="\1" }

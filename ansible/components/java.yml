@@ -1,0 +1,64 @@
+---
+- name: Java 8 install
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+  vars:
+    java_bin: "jdk-8u301-linux-x64.rpm"
+    certs_dest: "/usr/java/jdk1.8.0_301-amd64/jre/lib/security/"
+
+  tasks:
+    - name: download Java 8 RPM
+      get_url:
+        url: "{{ bin_url }}{{ java_bin }}{{ sas_token }}"
+        dest: /tmp/
+
+    - name: Install Java 8 RPM
+      yum:
+        pkg: "/tmp/{{ java_bin }}"
+        state: present
+        lock_timeout: 180
+
+    - name: cleanup Java 8 rpm
+      file:
+        path: "/tmp/{{ java_bin }}"
+        state: absent
+
+    - name: dev certs
+      block:
+        - name: download certificates
+          get_url:
+            url: "{{ item }}"
+            dest: "{{ certs_dest }}"
+          with_items:
+            - "{{ certs_url }}{{ test_root_cert }}{{ sas_token }}"
+            - "{{ certs_url }}{{ test_int_cert_app }}{{ sas_token }}"
+            - "{{ certs_url }}{{ test_int_cert_inf }}{{ sas_token }}"
+        
+        - name: add certificates to java
+          shell: |
+            keytool -import -alias devrootca -keystore {{ certs_dest }}cacerts -file {{ certs_dest }}{{ test_root_cert }} -storepass changeit -noprompt
+            keytool -import -alias devintcaapp -keystore {{ certs_dest }}cacerts -file {{ certs_dest }}{{ test_int_cert_app }} -storepass changeit -noprompt
+            keytool -import -alias devintcainf -keystore {{ certs_dest }}cacerts -file {{ certs_dest }}{{ test_int_cert_inf }} -storepass changeit -noprompt
+      when: env != "prd"
+
+    - name: prod certs
+      block:
+        - name: download certificates
+          get_url:
+            url: "{{ item }}"
+            dest: "{{ certs_dest }}"
+            force: true
+          with_items:
+            - "{{ certs_url }}{{ prd_root_cert }}{{ sas_token }}"
+            - "{{ certs_url }}{{ prd_int_cert_app }}{{ sas_token }}"
+            - "{{ certs_url }}{{ prd_int_cert_inf }}{{ sas_token }}"
+        
+        - name: add certificates to java
+          shell: |
+            keytool -import -alias prodrootca -keystore {{ certs_dest }}cacerts -file {{ certs_dest }}{{ prd_root_cert }} -storepass changeit -noprompt
+            keytool -import -alias prodintcaapp -keystore {{ certs_dest }}cacerts -file {{ certs_dest }}{{ prd_int_cert_app }} -storepass changeit -noprompt
+            keytool -import -alias prodintcainf -keystore {{ certs_dest }}cacerts -file {{ certs_dest }}{{ prd_int_cert_inf }} -storepass changeit -noprompt
+      when: env == "prd"

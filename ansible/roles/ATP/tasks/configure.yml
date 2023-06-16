@@ -1,0 +1,37 @@
+---
+
+- name: Create MDATP directories
+  file:
+    path: /etc/opt/microsoft/mdatp/
+    recurse: true
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Register mdatp_onboard.json
+  stat:
+    path: /etc/opt/microsoft/mdatp/mdatp_onboard.json
+  register: mdatp_onboard
+
+- name: copy mdatp_onboard.json into /etc/opt/microsoft/mdatp
+  copy:
+    src: mdatp_onboard.json
+    dest: /etc/opt/microsoft/mdatp
+    mode: 0600
+    owner: root
+    group: root
+  when: not mdatp_onboard.stat.exists
+
+- name: copy WindowsDefenderATPOnboarding.py into /etc/opt/microsoft/mdatp
+  copy:
+    src: WindowsDefenderATPOnboarding.py
+    dest: /etc/opt/microsoft/mdatp
+    mode: 0755
+
+- name: Run WindowsDefenderATPOnboarding.py script
+  command: "python /etc/opt/microsoft/mdatp/WindowsDefenderATPOnboarding.py"
+  args:
+    chdir: /etc/opt/microsoft/mdatp
+  notify: restart mdatp
+  when: not mdatp_onboard.stat.exists

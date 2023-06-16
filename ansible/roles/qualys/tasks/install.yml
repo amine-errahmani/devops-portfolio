@@ -1,0 +1,18 @@
+---
+
+- name: Copy Qualys agent package
+  copy:
+    src: QualysCloudAgent.rpm
+    dest: /tmp/QualysCloudAgent.rpm
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Install Qualys agent package
+  yum:
+    name: /tmp/QualysCloudAgent.rpm
+    state: present
+  when: yum_list.results | selectattr("yumstate", "match", "installed") | list | length == 0
+  register: yum_installed
+
+

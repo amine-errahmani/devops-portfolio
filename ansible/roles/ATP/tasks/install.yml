@@ -1,0 +1,36 @@
+---
+- name: add microsoft repo key
+  rpm_key:
+    state: present
+    key: http://packages.microsoft.com/keys/microsoft.asc
+
+- name: Add  Microsoft yum repository for MDATP
+  yum_repository:
+    name: packages-microsoft-prod
+    description: Microsoft Defender for Endpoint
+    file: microsoft-prod
+    baseurl: https://packages.microsoft.com/rhel/7/prod/
+    gpgcheck: yes
+    enabled: Yes
+  when: ansible_os_family == "RedHat"
+    
+- name: Install mdatp package
+  yum:
+    name: mdatp
+    state: present
+  when: yum_list.results | selectattr("yumstate", "match", "installed") | list | length == 0
+  register: yum_installed
+
+- name: edit service file
+  lineinfile:
+    path: /usr/lib/systemd/system/mdatp.service
+    insertafter: '^#Environment'
+    line: 'EnvironmentFile=/etc/environment'
+  notify : 
+    - daemon reload
+    - restart mdatp
+
+- name: Flush handlers
+  meta: flush_handlers
+
+  

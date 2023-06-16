@@ -1,0 +1,62 @@
+---
+- name: add line to inventory
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "add host {{ host }} in group {{ group }} to inventory"
+      lineinfile:
+        dest: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+        line: "{{ host }}"
+        state: present
+        insertafter: "{{ group }}"
+        firstmatch: yes
+
+    # - name: "add index {{ index }} to {{ rt_vars_group }}"
+    #   lineinfile:
+    #     dest: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+    #     line: "index={{ index }}"
+    #     state: present
+    #     insertafter: "{{ rt_vars_group }}"
+    #     firstmatch: yes
+    #   when: rt_vars_group is defined 
+
+    # - name: "add realtime ip {{ host }} to {{ batch_vars_group }}"
+    #   lineinfile:
+    #     dest: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+    #     line: "rt{{ index }}={{ host }}"
+    #     state: present
+    #     insertafter: "{{ batch_vars_group }}"
+    #   when: batch_vars_group is defined
+    
+    # - name: "add batch ip {{ host }} to {{ realtime_vars_group }}"
+    #   lineinfile:
+    #     dest: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+    #     line: "batch_srv_ip={{ host }}"
+    #     state: present
+    #     insertafter: "{{ realtime_vars_group }}"
+    #     firstmatch: yes
+    #   when: realtime_vars_group is defined
+
+    # - name: "add app3 ip {{ host }} and name to {{ app1_batch_vars_group }}"
+    #   lineinfile:
+    #     dest: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+    #     line: "{{ item }}"
+    #     state: present
+    #     insertafter: "{{ app1_batch_vars_group }}"
+    #     firstmatch: yes
+    #   with_items:
+    #     - "app3_ip={{ host }}"
+    #     - "app3_name={{ app3_name }}"
+    #   when: app1_batch_vars_group is defined and app3_name is defined
+      
+    # - name: "add app2_rt {{ host }} to {{ app1_batch_vars_group }}"
+    #   lineinfile:
+    #     dest: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+    #     line: "app2_rt_ip={{ host }}"
+    #     state: present
+    #     insertafter: "{{ app1_batch_vars_group }}"
+    #     firstmatch: yes
+    #   when: app1_batch_vars_group is defined and no_app3 is defined
+

@@ -1,0 +1,143 @@
+{
+    "variables": {
+        "subscription_id": "{{env `ARM_SUBSCRIPTION_ID`}}",
+        "tenant_id": "{{env `ARM_TENANT_ID`}}",
+        "client_id": "{{env `PACKER_CLIENT_ID`}}",
+        "client_secret": "{{env `PACKER_CLIENT_SECRET`}}",
+        "IMAGE_NAME": "{{env `imgName`}}",
+        "IMAGE_VERSION": "{{env `imgVersion`}}",
+        "DB_USER": "{{env `db_user`}}",
+        "DB_PASS": "{{env `db_pass`}}",
+        "SA_PASS": "{{env `sa_pass`}}",
+        "BLOB_TOKEN": "{{env `blob_token`}}"
+    },
+    "builders": [
+        {
+            "type": "azure-arm",
+        
+            "subscription_id": "{{user `subscription_id`}}",
+            "tenant_id": "{{user `tenant_id`}}",
+            "client_id": "{{user `client_id`}}",
+            "client_secret": "{{user `client_secret`}}",
+
+            "build_resource_group_name": "{{user `packer_rg`}}",
+            "virtual_network_name": "{{user `packer_vnet`}}",
+            "virtual_network_subnet_name": "{{user `packer_snet`}}",
+            "virtual_network_resource_group_name": "{{user `packer_vnet_rg`}}",            
+            
+            "managed_image_resource_group_name": "{{user `RESOURCE_GROUP`}}",
+            "managed_image_name": "{{user `IMAGE_NAME`}}-{{user `IMAGE_VERSION`}}",
+           
+            "shared_image_gallery": {
+                "subscription": "{{user `gallery_sub`}}",
+                "resource_group": "{{user `gallery_rg`}}",
+                "gallery_name": "{{user `gallery_name`}}",
+                "image_name": "{{user `WIN_BASE_IMG`}}",
+                "image_version": "{{user `win_image_ver`}}"
+            },
+
+            "shared_image_gallery_destination": {
+                "subscription": "{{user `gallery_sub`}}",
+                "resource_group": "{{user `gallery_rg`}}",
+                "gallery_name": "{{user `gallery_name`}}",
+                "image_name": "{{user `IMAGE_NAME`}}",
+                "image_version": "{{user `IMAGE_VERSION`}}",
+                "replication_regions": ["UAENorth", "UAECentral"]
+            },
+            "shared_image_gallery_replica_count":"2",
+            
+            "os_type": "Windows",
+            
+            
+            "communicator": "winrm",
+            "winrm_use_ssl": true,
+            "winrm_insecure": true,
+            "winrm_timeout": "60m",
+            "winrm_username": "packer",
+
+        
+            "azure_tags": {
+                "environment": "{{user `ENVIRONMENT`}}",
+                "application": "{{user `APP_NAME`}}"
+            },
+                    
+            "vm_size": "{{user `VM_SIZE`}}",
+            "disk_additional_size": "{{ user `app4_DATA_DISK_SIZE` }}"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "powershell",
+            "script": "./powershell/datadisk-init.ps1"
+        },       
+        {
+            "type": "powershell",
+            "inline": [
+                "New-Item -Path C:\\ -Name 'ServerConfig' -ItemType directory"
+            ]
+        }, 
+        {
+            "type": "file", 
+            "source": "./powershell/configure-proxy-{{user `proxy_suffix`}}.ps1",
+            "destination": "C:\\ServerConfig\\configure-proxy.ps1"
+        },  
+        {
+            "type": "powershell",
+            "inline": [
+                "C:\\ServerConfig\\configure-proxy.ps1"
+            ]
+        },
+        {
+            "type": "file", 
+            "source": "./powershell/set-timezone.ps1",
+            "destination": "C:\\ServerConfig\\set-timezone.ps1"
+        },    
+        {
+            "type": "file",
+            "source": "./powershell/onboard-atp-{{user `proxy_suffix`}}.cmd",
+            "destination": "C:\\ServerConfig\\onboard-atp.cmd"
+        },
+        {
+            "type": "file",
+            "source": "./powershell/app4_fileshare.ps1",
+            "destination": "E:\\scripts\\app4_fileshare.ps1"
+        },
+        {
+            "type": "file",
+            "source": "./powershell/app4_task_import.ps1",
+            "destination": "E:\\scripts\\app4_task_import.ps1"
+        },
+        {
+            "type": "file",
+            "source": "./powershell/app4_scoring.ps1",
+            "destination": "E:\\scripts\\app4_scoring.ps1"
+        },
+        {
+            "type": "file",
+            "source": "./powershell/app4.ps1",
+            "destination": "E:\\scripts\\app4.ps1",
+            "direction": "upload"
+        },
+        {
+            "type": "powershell",
+            "inline": ["E:\\scripts\\app4.ps1 {{user `ENVIRONMENT`}} {{user `DB_USER`}} {{user `DB_PASS`}} {{user `SA_PASS`}} {{user `FILESHARE`}}"]
+        },
+        {
+            "type": "file",
+            "source": "./powershell/ConfigureRemotingForAnsible.ps1",
+            "destination": "E:\\scripts\\ConfigureRemotingForAnsible.ps1",
+            "direction": "upload"
+        },
+        {
+            "type": "powershell",
+            "inline": ["E:\\scripts\\ConfigureRemotingForAnsible.ps1"]
+        },
+        {
+            "type": "powershell",
+            "inline": [
+                "& $env:SystemRoot\\System32\\Sysprep\\Sysprep.exe /oobe /generalize /quiet /quit",
+                "while($true) { $imageState = Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\State | Select ImageState; if($imageState.ImageState -ne 'IMAGE_STATE_GENERALIZE_RESEAL_TO_OOBE') { Write-Output $imageState.ImageState; Start-Sleep -s 10  } else { break } }"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,177 @@
+{
+    "subscription": "ARM_SUBSCRIPTION_ID",
+    "clientId": "ARM_CLIENT_ID",
+    "clientSecret": "ARM_CLIENT_SECRET",
+    "packerClientId": "PACKER_CLIENT_ID",
+    "packerClientSecret": "PACKER_CLIENT_SECRET",
+    "tenantId": "ARM_TENANT_ID",
+    "armKeyId": "StorageAccessKeyDevOps",
+    "armKeyIdPrd": "StorageAccessKeyTFPRD",
+    "storageKey": "StorageAccountKey",
+    "gitSP": "github-sp-dev",
+    "app4SaPasswordId": "shdvendorapp4sta",
+    "app4SaPasswordIdPrd": "shpvendorapp4sa",
+    "app2SaPasswordId": "shdvendorapp2sta",
+    "app2SaPasswordIdPrd": "shpvendorapp2sa",
+    "app3SaPasswordId": "shdvendorapp3sta",
+    "app3SaPasswordIdPrd": "shpvendorapp3sa",
+    "dnsSVC": "dns-svc-dev",
+    "dnsServer": "shd-adc01.infra.com",
+    "blob_token": "vendor_sas_token",
+    "worldcheck": "Worldcheck-creds",
+    "emailApi": "emailApi-creds",
+    "acrCreds": "azure-container-registry-sp",
+    "acrCredsBase64": "acrCredsBase64",
+    "acrCredsPrd": "azure-container-registry-sp-prd",
+    "acrCredsPrdBase64": "acrCredsPrdBase64",
+    "crcredss" : "jfrog-cr-creds",
+    "jfrogToken" : "jfrog-token-base64",
+    "blob_url_token": "?sv=2019-12-12&st=2022-05-31T07%3A29%3A55Z&se=2024-06-01T07%3A29%3A00Z&sr=c&sp=rl&sig=GoIq4r84MEcP8Ey22rg%2FiHxZEvsbb9jW16ZyUBWqH4w%3D",
+    "vault_token_dev": "vault_token_dev",
+    "vault_addr_dev": "https://vault.shd.infra.com",
+    "vault_token_shp": "vault-token-full-access",
+    "vault_addr_shp": "https://vault.infra.ae",
+    "certs": {
+        "certs_url": "https://storage.blob.core.windows.net/vendor/certs/", 
+        "dev_root": "ca-test-root.der",
+        "dev_int_app": "ca-test-int-app.der",
+        "dev_int_inf": "ca-test-int-inf.der",
+        "prod_root": "ca-prd-root.der",
+        "prod_int_app": "ca-prd-int-app.der",
+        "prod_int_inf": "ca-prd-int-inf.der"
+    },
+    "blob_url_token": "?sv=2019-12-12&st=2022-05-06T08%3A29%3A20Z&se=2024-05-07T08%3A29%3A00Z&sr=c&sp=rl&sig=qujm9uO3UP%2FDpRlDUNqPFbVg175OaZuvvD3xhShTqmo%3D",
+    "common": {
+        "base": {
+            "imageName": "vendor-base",
+            "imageVersion": "0.1.3",
+            "imageName_8": "vendor-base-8",
+            "imageVersion_8": "0.0.2"
+        },
+        "app2": {
+            "namescreeningContainerName": "vendor-app2/namescreening",
+            "namematchingContainerName": "vendor-app2/namematching",
+            "containersUrl": "https://storage.blob.core.windows.net/vendor/app2%20Artifacts/"
+        },
+        "app3": {
+            "imageName": "vendor-app3",
+            "imageVersion": "0.2.0",
+            "distrib_url": "https://storage.blob.core.windows.net/vendor/Case%20Manager%20Artifacts/"
+        },
+        "app1": {
+            "containersUrl": "https://storage.blob.core.windows.net/vendor/app1%20Artifacts/",
+            "containerName": "vendor-app1/app1",
+            "containerVersion": "0.6.2",
+            "app1_jar": "app1-3.2.5.jar"
+        },
+        "app4": {
+            "datadiskSize": "128"
+        }
+    },
+    "shd": {
+        "credentialsId": "SHD-devtest-Azure-JenkinsSP",
+        "subId": "TF_VAR_subscription_id_dev"
+    },
+    "dev": {
+        "packerCredentialsId": "DEV-devtest-Azure-JenkinsSP",
+        "credentialsId": "DEV-devtest-Azure-JenkinsSP",
+        "DbPasswordId": "DEV-vendor-DB-PASS",
+        "app3DbPasswordId": "DEV-app3-DB-PASS",
+        "blobfuse": "blobfuse_sas_token_dev",
+        "app3": {
+            "distrib": "distribution-3.0.0-20220727.222415-1",
+            "ansible": "ansible-4.1.0"
+        },        
+        "app2": {
+            "imageName": "dev-vendor-app2",
+            "imageVersion": "0.1.0",
+            "namescreeningContainerVersion": "0.0.4",
+            "namescreeningContainer": "docker_namescreening_container_20211118.tar.gz",
+            "namematchingContainerVersion": "0.0.4",
+            "namematchingContainer": "docker_namematching_container_20211118.tar.gz"
+        },
+        "app1": {
+            "imageName": "dev-vendor-app1",
+            "imageVersion": "0.2.6",
+            "containerName": "vendor/app1",
+            "containerVersion": "0.3.1",
+            "app1_jar": "app1-3.1.9.jar"
+        },
+        "app4": {
+            "imageName": "dev-vendor-app4",
+            "imageVersion": "0.0.1"
+        }
+    },
+    "test": {
+        "packerCredentialsId": "test-devtest-Azure-JenkinsSP",
+        "credentialsId": "test-devtest-Azure-JenkinsSP",
+        "DbPasswordId": "test-vendor-DB-PASS",
+        "app3DbPasswordId": "test-app3-DB-PASS",
+        "blobfuse": "blobfuse_sas_token_test",
+        "oauthapp3": "test-OAuth-app3-creds",
+        "oauthapp2": "test-OAuth-app2-creds",
+        "app3DataSharePass": "shdinformaticavendorsta",
+        "app3": {
+            "distrib": "distribution-3.0.0-20220901.060323-1",
+            "ansible": "ansible-4.1.1"
+        },        
+        "app2": {
+            "imageName": "test-vendor-app2",
+            "imageVersion": "0.0.5",
+            "namescreeningContainerVersion": "0.0.4",
+            "namescreeningContainer": "docker_namescreening_container_20211118.tar.gz",
+            "namematchingContainerVersion": "0.0.4",
+            "namematchingContainer": "docker_namematching_container_20211118.tar.gz"
+        },
+        "app1": {
+            "imageNameN": "test-vendor-app1-n",
+            "imageNameC": "test-vendor-app1-c",
+            "imageVersion": "0.2.6",
+            "containerName": "vendor/app1",
+            "containerVersion": "0.3.0",
+            "app1_jar": "app1-3.1.9.jar"
+        },
+        "app4": {
+            "imageName": "test-vendor-app4",
+            "imageVersion": "0.0.1"
+        }
+    },
+    "shp": {
+        "credentialsId": "SHP-Azure-JenkinsSP",
+        "subId": "TF_VAR_subscription_id_dev"
+    },
+    "prd": {
+        "packerCredentialsId": "Packer-Azure-JenkinsSP",
+        "credentialsId": "PRD-Azure-JenkinsSP",
+        "DbPasswordId": "PRD-vendor-DB-PASS",
+        "app3DbPasswordId": "PRD-app3-DB-PASS",
+        "blobfuse": "blobfuse_sas_token_prd",
+        "oauthapp3": "PRD-OAuth-app3-creds",
+        "oauthapp2": "PRD-OAuth-app2-creds",
+        "app3DataSharePass": "shpinformaticavendorsta",
+        "app3": {
+            "distrib": "distribution-3.0.0-20220311.151302-6",
+            "ansible": "ansible-4.1.0"
+        },        
+        "app2": {
+            "imageName": "prd-vendor-app2",
+            "imageVersion": "0.0.5",
+            "namescreeningContainerVersion": "0.0.4",
+            "namescreeningContainer": "docker_namescreening_container_20211118.tar.gz",
+            "namematchingContainerVersion": "0.0.4",
+            "namematchingContainer": "docker_namematching_container_20211118.tar.gz"
+        },
+        "app1": {
+            "imageNameN": "prd-vendor-app1-n",
+            "imageNameC": "prd-vendor-app1-c",
+            "imageVersion": "0.2.6",
+            "containerName": "vendor/app1-prd",
+            "containerVersion": "0.2.4",
+            "app1_jar": "app1-3.1.9.jar"
+        },
+        "app4": {
+            "imageName": "prd-vendor-app4",
+            "imageVersion": "0.0.1"
+        }
+    }
+}

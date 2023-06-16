@@ -1,0 +1,140 @@
+#!/usr/bin/groovy
+def label = "loki"
+
+podTemplate(
+    label: label, 
+    containers: [
+        containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.27-1-alpine', args: '${computer.jnlpmac} ${computer.name}', workingDir: '/home/jenkins', resourceRequestCpu: '200m', resourceLimitCpu: '300m', resourceRequestMemory: '256Mi', resourceLimitMemory: '512Mi'),
+        containerTemplate(name: 'helm-kube-vault', image: 'helm_kube_vault:latest', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat')],
+    imagePullSecrets: [ "crcreds" ] 
+){
+
+    node (label) {
+
+        properties([
+            parameters([
+                choice(name:'ENV', choices: "dev\nprod", description: 'Environment to deploy')
+            ])
+        ])
+
+        try {
+
+            stage('Checkout') {
+                ansiColor('xterm') {
+                    println "Checkout the git repo"
+                    checkout scm
+                }
+            }
+
+            userInput = false
+            apply = false
+
+            println "Loading Pipeline config"
+            def inputFile = readFile('jenkins/config/jenkinsfile.json')
+            def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+
+            container('helm-kube-vault'){   
+                switch(ENV) {
+                    case "dev":
+                        withCredentials([string(credentialsId: "${config.vault_token_dev}", variable: 'vault_token')]){
+                            vault_addr = "${config.vault_addr_dev}"
+                            kubeconfig(credentialsId:'devopsKubeConfigFile'){
+                                loki(ENV)
+                            }
+                        }
+                        break;
+                    case "prod":
+                        withCredentials([string(credentialsId: "${config.vault_token_shp}", variable: 'vault_token')]){
+                            vault_addr = "${config.vault_addr_shp}"
+                            kubeconfig(credentialsId:'devopsKubeConfigFile'){
+                                loki(ENV)
+                            }
+                        }
+                        break;
+                }
+
+            }
+
+        } catch(error) {
+            currentBuild.result = "FAILED"
+            throw error
+        }
+    }
+}
+
+def loki(ENV) {
+    
+    stage ('diff-upgrade') {
+        ansiColor('xterm') {
+            sh """
+                chmod 600 .kube*
+
+                export VAULT_TOKEN="${vault_token}"
+                export VAULT_ADDR="${vault_addr}"
+                export VAULT_SKIP_VERIFY=true
+                export HELM_SECRETS_DRIVER=vault
+
+                scripts/loki.sh diff-upgrade ${ENV}
+            """ 
+        }
+    }
+
+    script {
+        ansiColor('xterm'){
+            def plan_exitCode = sh(
+            script: '''head -n 1 helm/loki/helm-diff-exitcode''',
+            returnStdout: true
+            ).trim()
+            echo "Helm Diff Exit Code: ${plan_exitCode}"
+
+            if ("${plan_exitCode}" == "0") {
+                echo "No changes. Helm release is up-to-date!"
+                currentBuild.result = 'SUCCESS'
+            }
+            if ("${plan_exitCode}" == "1") {
+                throw "Helm diff has failed!"
+                currentBuild.result = 'FAILURE'
+            }
+            if ("${plan_exitCode}" == "2") {
+                echo "Changes have been noticed!"
+                apply = true
+            }
+        }
+    }
+
+    if (apply == true) {
+        stage ('Helm Chart Upgrade Approval') {
+            userInput = input(
+                id: 'runUpgrade', 
+                message: 'would you like to upgrade?', 
+                parameters: [ 
+                    [
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false,
+                        description: 'Upgrade',
+                        name: 'confirm Helm Chart upgrade'
+                    ] 
+                ]
+            )
+        }
+
+        stage ('Upgrade') {
+            if (userInput == true) {
+                ansiColor('xterm') {
+                    sh """
+                        chmod 600 .kube*
+
+                        export VAULT_TOKEN="${vault_token}"
+                        export VAULT_ADDR="${vault_addr}"
+                        export VAULT_SKIP_VERIFY=true
+                        export HELM_SECRETS_DRIVER=vault
+
+                        scripts/loki.sh upgrade ${ENV}
+                    """
+                }
+            } else {
+                error "Deployment aborted!!!"
+            }    
+        }
+    }
+}

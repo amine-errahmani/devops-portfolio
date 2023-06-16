@@ -1,0 +1,29 @@
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
+metadata:
+  name: custom-runner-deployment
+spec:
+  template:
+    spec:
+      organization: gh_org
+      labels:
+        - custom_runner_label
+      image: image_tag
+      imagePullSecrets: 
+        - name: imagepullsecrets
+---
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: HorizontalRunnerAutoscaler
+metadata:
+  name: custom-runner-deployment-autoscaler
+spec:
+  scaleTargetRef:
+    name: custom-runner-deployment
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: PercentageRunnersBusy
+    scaleUpThreshold: '0.75'
+    scaleDownThreshold: '0.3'
+    scaleUpAdjustment: 2
+    scaleDownAdjustment: 1

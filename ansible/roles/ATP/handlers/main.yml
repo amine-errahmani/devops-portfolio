@@ -1,0 +1,12 @@
+---
+# handlers file for atp
+
+
+- name: restart mdatp
+  service:
+    name: mdatp
+    state: restarted
+    enabled: true
+
+- name: daemon reload
+  shell: "systemctl daemon-reload"

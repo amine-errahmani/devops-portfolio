@@ -1,0 +1,33 @@
+# BASE SETTINGS
+
+[tcpout]
+defaultGroup = {{ prefix }}_indexers
+forceTimebasedAutoLB = true
+forwardedindex.2.whitelist = (_audit|_introspection|_internal)
+maxQueueSize = 7MB
+useACK = true
+
+[tcpout:{{ prefix }}_indexers]
+server = {{ splunk_server1 }}:{{ splunk_server_port }}, {{ splunk_server2 }}:{{ splunk_server_port }}, {{ splunk_server3 }}:{{ splunk_server_port }}, {{ splunk_server4 }}:{{ splunk_server_port }}
+indexerDiscovery = {{ prefix }}_sha_clustered_indexers
+useACK = true
+useSSL = true
+clientCert = $SPLUNK_HOME/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/auth/server.pem
+sslRootCAPath = $SPLUNK_HOME/etc/apps/{{ prefix }}_sha_suf_nix_splunk_ssl_base/auth/cacert.pem
+sslPassword = {{ splunk_ssl_pass }}
+
+[tcpout-server://{{ splunk_server1 }}:{{ splunk_server_port }}]
+sslVerifyServerCert = true
+sslCommonNameToCheck = {{ splunk_server1 }}
+
+[tcpout-server://{{ splunk_server2 }}:{{ splunk_server_port }}]
+sslVerifyServerCert = true
+sslCommonNameToCheck = {{ splunk_server2 }}
+
+[tcpout-server://{{ splunk_server3 }}:{{ splunk_server_port }}]
+sslVerifyServerCert = true
+sslCommonNameToCheck = {{ splunk_server3 }}
+
+[tcpout-server://{{ splunk_server4 }}:{{ splunk_server_port }}7]
+sslVerifyServerCert = true
+sslCommonNameToCheck = {{ splunk_server4 }}

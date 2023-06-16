@@ -1,0 +1,12 @@
+{
+    "crcredss" : "jfrog-cr-creds",
+    "jfrogToken" : "jfrog-token-base64",
+    "container_name" : "helm_kube_vault",
+    "container_repo" : "devops-tools",
+    "KUBE_VERSION" : "1.23.5",
+    "HELM_VERSION" : "3.8.2",
+    "HELM_SECRETS_VERSION" : "3.12.0",
+    "YQ_VERSION" : "4.24.5",
+    "VAULT_VERSION" : "1.9.4",
+    "IMAGE_VERSION" : "0.0.1"
+}

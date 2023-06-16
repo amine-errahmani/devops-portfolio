@@ -1,0 +1,1207 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring-stack
+  name: monitoring-stack-alert-minutiae
+  annotations:
+    k8s-sidecar-target-directory: "/tmp/dashboards/alerts"
+  labels:
+    grafana_dashboard: "1"
+    app: monitoring-stack-grafana
+data:
+  alert-minutiae.json: |-
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "type": "dashboard"
+          }
+        ]
+      },
+      "description": "",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": 537,
+      "iteration": 1663676526138,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Number of alerts\n\n(Note: Excluded  alertname \"connectivity high latency\")",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 3
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 0,
+            "y": 0
+          },
+          "id": 12,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname!=\"connectivity high latency\", Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Total",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Number of Active Critical Alerts",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#29b716",
+                    "value": null
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 2,
+            "y": 0
+          },
+          "id": 29,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {
+              "valueSize": 50
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "severity=~\"critical\", Solution=~\"$solution\"",
+              "receiver": "itsmapp1",
+              "refId": "A"
+            }
+          ],
+          "title": "Critical",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Number of Active Warning Alerts",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#29b716",
+                    "value": null
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 4,
+            "y": 0
+          },
+          "id": 30,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {
+              "valueSize": 50
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "severity=~\"warning\", Solution=~\"$solution\"",
+              "receiver": "itsmapp1",
+              "refId": "A"
+            }
+          ],
+          "title": "Warning",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Number of Silenced alerts",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#6a6d71",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 6,
+            "y": 0
+          },
+          "id": 6,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "active": false,
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": true
+            }
+          ],
+          "title": "Silenced Alerts",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Number of Inhibited alerts",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#074bb1",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 8,
+            "y": 0
+          },
+          "id": 7,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "active": false,
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "Solution=~\"$solution\"",
+              "inhibited": true,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Inhibited Alerts",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "HostHighCpuLoad Active",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 10,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\".*HostHighCpuLoad.*|.*CpuUsage.*\", Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "CPU Utilization",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "HostOutOfMemory Active",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 12,
+            "y": 0
+          },
+          "id": 21,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\".*HostOutOfMemory.*|.*MemoryUsage.*\",  Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Memory Utilization",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "HostOutOfDiskSpace Active",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 14,
+            "y": 0
+          },
+          "id": 22,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\".*HostOutOfDiskSpace.*\",  Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Out Of Disk Space",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Collector Errors Active",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 16,
+            "y": 0
+          },
+          "id": 24,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\".*WindowsServerCollectorError.*|.*CollectorError.*\",Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Collector Errors",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Service Failures Active",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 18,
+            "y": 0
+          },
+          "id": 23,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\".*HostSystemdService.*|.*WindowsService.*\", Solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Service Down",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Alert Name TargetDown",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f4d408",
+                    "value": 1
+                  },
+                  {
+                    "color": "#d90921",
+                    "value": 20
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 20,
+            "y": 0
+          },
+          "id": 39,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "active": true,
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\".*TargetDown.*\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Instance Down",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "description": "Connectivity High Latency Active (Static panel, Solution tag need to be included on Alert Rule)",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6a6b6e",
+                    "value": null
+                  },
+                  {
+                    "color": "#29b716",
+                    "value": 0
+                  },
+                  {
+                    "color": "#ff7604",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 2,
+            "x": 22,
+            "y": 0
+          },
+          "id": 25,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "count"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "active": true,
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname=~\"connectivity high latency\",  solution=~\"$solution\"",
+              "inhibited": false,
+              "refId": "A",
+              "silenced": false
+            }
+          ],
+          "title": "Connectivity High Latency",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "camptocamp-prometheus-alertmanager-datasource",
+            "uid": "P7647F508D5F54FCB"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "displayMode": "auto",
+                "filterable": true
+              },
+              "mappings": [],
+              "noValue": "No Alerts",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#757575",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Severity"
+                },
+                "properties": [
+                  {
+                    "id": "custom.displayMode",
+                    "value": "color-background"
+                  },
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "options": {
+                          "critical": {
+                            "color": "#d90921",
+                            "index": 1,
+                            "text": "Critical"
+                          },
+                          "high": {
+                            "color": "dark-orange",
+                            "index": 2,
+                            "text": "High"
+                          },
+                          "warning": {
+                            "color": "#f4d408",
+                            "index": 0,
+                            "text": "Warning"
+                          }
+                        },
+                        "type": "value"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 90
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Solution"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 100
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Hostname"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 100
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Alert Name"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 200
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Time"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 150
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 24,
+            "w": 24,
+            "x": 0,
+            "y": 3
+          },
+          "id": 36,
+          "options": {
+            "footer": {
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "Alert Name"
+              }
+            ]
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "camptocamp-prometheus-alertmanager-datasource",
+                "uid": "P7647F508D5F54FCB"
+              },
+              "filters": "alertname!~\"connectivity high latency\", Solution=~\"$solution\"",
+              "refId": "A"
+            }
+          ],
+          "title": "Active Alerts",
+          "transformations": [
+            {
+              "id": "seriesToColumns",
+              "options": {
+                "byField": "alertname"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Autoscale": true,
+                  "Component": true,
+                  "Contact": true,
+                  "Criticality": true,
+                  "DR": true,
+                  "Department": true,
+                  "Environment": true,
+                  "HA": true,
+                  "Mutability": true,
+                  "PCIDSS": true,
+                  "RPO": true,
+                  "RTO": true,
+                  "Service": true,
+                  "SeverityValue": true,
+                  "Stakeholders": true,
+                  "alertstatus": true,
+                  "alertstatus_code": true,
+                  "collector": true,
+                  "description": false,
+                  "device": true,
+                  "fstype": true,
+                  "job": true,
+                  "monitoring": true,
+                  "mountpoint": true,
+                  "name": true,
+                  "prometheus": true,
+                  "state": true,
+                  "summary": true,
+                  "type": true
+                },
+                "indexByName": {
+                  "Autoscale": 9,
+                  "Component": 10,
+                  "Contact": 11,
+                  "Criticality": 12,
+                  "DR": 13,
+                  "Department": 14,
+                  "Environment": 15,
+                  "HA": 16,
+                  "Mutability": 17,
+                  "PCIDSS": 18,
+                  "RPO": 19,
+                  "RTO": 20,
+                  "Service": 21,
+                  "SeverityValue": 8,
+                  "Solution": 4,
+                  "Stakeholders": 22,
+                  "Time": 0,
+                  "alertname": 1,
+                  "alertstatus": 28,
+                  "alertstatus_code": 29,
+                  "description": 5,
+                  "device": 23,
+                  "fstype": 24,
+                  "instance": 3,
+                  "job": 25,
+                  "monitoring": 26,
+                  "mountpoint": 7,
+                  "prometheus": 27,
+                  "severity": 2,
+                  "summary": 6
+                },
+                "renameByName": {
+                  "Solution": "",
+                  "alertname": "Alert Name",
+                  "description": "Description",
+                  "instance": "Hostname",
+                  "mountpoint": "",
+                  "severity": "Severity"
+                }
+              }
+            }
+          ],
+          "transparent": true,
+          "type": "table"
+        }
+      ],
+      "schemaVersion": 34,
+      "style": "dark",
+      "tags": [],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "Alertmanager",
+              "value": "Alertmanager"
+            },
+            "hide": 0,
+            "includeAll": true,
+            "label": "Alertmanager",
+            "multi": false,
+            "name": "alertmanager",
+            "options": [],
+            "query": "camptocamp-prometheus-alertmanager-datasource",
+            "queryValue": "",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": "All",
+              "value": "$__all"
+            },
+            "definition": "label_values(Solution)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Solution",
+            "multi": false,
+            "name": "solution",
+            "options": [],
+            "query": {
+              "query": "label_values(Solution)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Alert Minutiae",
+      "uid": "f-EwUhG4k",
+      "version": 1,
+      "weekStart": ""
+    }

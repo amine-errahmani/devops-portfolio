@@ -1,0 +1,72 @@
+#!/usr/bin/groovy
+def label = "helm_kube_vault"
+
+podTemplate(label: label, containers: [
+    containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.27-1-alpine', args: '${computer.jnlpmac} ${computer.name}', workingDir: '/home/jenkins', resourceRequestCpu: '200m', resourceLimitCpu: '300m', resourceRequestMemory: '256Mi', resourceLimitMemory: '512Mi'),
+    containerTemplate(name: 'curl', image: 'benhall/curl:latest', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'docker', image: 'docker:dind', workingDir: '/home/jenkins', privileged: true, ttyEnabled: true)
+]){
+
+    node (label) {
+
+        try {
+
+            stage('Checkout') {
+                ansiColor('xterm') {
+                    println "Checkout the git repo"
+                    checkout scm
+                }
+            }
+
+            println "Loading Pipeline config"
+            inputFile = readFile('jenkins/config/helm_kube_vault.json')
+            config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+            
+            if (env.BRANCH_NAME == "develop" || env.BRANCH_NAME =~ "SRE*" || env.BRANCH_NAME =~ "PR*" ) {
+                def ENV = "dev"
+                def containerName="${config.container_repo}/${config.container_name}"
+                def containerVersion="${config.IMAGE_VERSION}"
+                def containerFullTag="$repo/$containerName:$containerVersion"
+                def build_date = new Date().format("HH:mm:ss-dd/MM/yy")
+
+                
+                withCredentials([string(credentialsId: "${config.jfrogToken}", variable: 'jfrogToken')]){
+                    container('curl') {
+                        sh """
+                            curl -X GET -s -H "Authorization: Basic ${jfrogToken}" https://$repo/v2/${containerName}/manifests/${containerVersion} > container.json
+                        """
+                    }
+                }
+                def containerJson = readFile('container.json')
+                def containerData = new groovy.json.JsonSlurperClassic().parseText(containerJson)
+                if (containerData.errors != null) { // container does not exist
+                    stage ("image build and push"){
+                        container('docker'){
+                            docker.withRegistry('http://$repo/', 'jfrog-cr-creds') {
+                                def container = docker.build("$containerFullTag", "--build-arg BUILD_DATE=${build_date} \
+                                                                                    --build-arg VERSION=${config.IMAGE_VERSION} \
+                                                                                    --build-arg YQ_VERSION=${config.YQ_VERSION} \
+                                                                                    --build-arg VAULT_VERSION=${config.VAULT_VERSION} \
+                                                                                    --build-arg HELM_SECRETS_VERSION=${config.HELM_SECRETS_VERSION} \
+                                                                                    --build-arg HELM_VERSION=${config.HELM_VERSION} \
+                                                                                    --build-arg KUBE_VERSION=${config.KUBE_VERSION} ./docker/helm_kube_vault/" )
+                                container.push()
+                                container.push('latest')
+                            }
+                        }
+                    }
+                }
+                else {
+                    println "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    println "+ The Container image ${containerFullTag} already exists in container registry."
+                    println "+ A new container image won't be pushed again."
+                    println "+ Hint: You can bump the container version in config.common.app1.containerVersion to push a new image."
+                    println "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                }
+            }
+        } catch(error) {
+            currentBuild.result = "FAILED"
+            throw error
+        }
+    }
+}

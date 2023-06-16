@@ -1,0 +1,71 @@
+---
+- name: kafka install and config
+  hosts: all
+  become: yes
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+
+  tasks:
+    - name: download kafka
+      get_url: 
+        url: " {{ kafka_bin_url }} "
+        dest: /tmp/
+
+    - name: create kafka directory
+      file:
+        path: /opt/kafka/
+        state: directory
+        owner: appuser
+        group: vendoradmin
+    
+    - name: unarchive kafka
+      unarchive: 
+        src: /tmp/kafka_2.11-2.1.1.tgz
+        dest: /opt/kafka/
+        extra_opts: [--strip-components=1]
+        owner: appuser
+        group: vendoradmin        
+
+    - name: cleanup kafka rpm
+      file:
+        path: /tmp/kafka_2.11-2.1.1.tgz
+        state: absent
+
+    - name: adding line to kafka server.properties
+      lineinfile:
+        path: /opt/kafka/config/server.properties
+        line: "auto.create.topics.enable=true"
+        state: present
+        owner: appuser
+        group: vendoradmin
+
+    - name: Copy kafka and zookeeper service files
+      copy:
+        src: /datadisk/vendor-solution/services/{{ item }}.service
+        dest: /etc/systemd/system/
+        mode: 0755
+      with_items:
+        - kafka
+        - zookeeper
+
+    - name: Start and enable zookeper and kafka services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      with_items:
+        - zookeeper
+        - kafka
+
+    - name: wait for kafka service to start
+      pause:
+        seconds: 10
+
+    - name: create topics
+      shell: |
+        cd /opt/kafka/
+        bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 3 --topic nbk-batch-alerted-customer
+        bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 3 --topic test
+        bin/kafka-topics.sh --describe --zookeeper localhost:2181

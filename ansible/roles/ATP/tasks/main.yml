@@ -1,0 +1,7 @@
+---
+
+- include: check_install.yml
+
+- include: install.yml
+
+- include: configure.yml

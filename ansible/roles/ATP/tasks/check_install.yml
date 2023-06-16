@@ -1,0 +1,11 @@
+---
+
+- name: Check if mdatp package is installed
+  yum:
+    list: mdatp
+  register: yum_list
+
+- name: Info debug
+  debug:
+    msg: "Not installed"
+  when: yum_list.results | selectattr("yumstate", "match", "installed") | list | length == 0

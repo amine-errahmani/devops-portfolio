@@ -1,0 +1,122 @@
+---
+- name: Worldcheck files download scripts setup
+  hosts: batch
+  environment:
+    http_proxy: "{{ proxy }}"
+    https_proxy: "{{ proxy }}"
+
+  tasks:
+    - name: update git repo
+      shell : cd /datadisk/vendor-solution ; git pull
+      
+    - name: create folders for worldcheck downloads
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: appuser
+        group: vendoradmin
+      with_items:
+        - /datadisk/appHome/importList/wc_full/
+        - /datadisk/appHome/importList/wc_daily/
+        - /mnt/{{ env | lower }}cbuae/wc_daily/
+
+    # - name: configure proxy for wget
+    #   lineinfile:
+    #     dest: /etc/wgetrc
+    #     line: "{{ item.line }}"
+    #     state: present
+    #     insertafter: "{{ item.after }}"
+    #   with_items: 
+    #     - { line: "https_proxy = {{ proxy }}", after: "^#ftp_proxy" }
+    #     - { line: "http_proxy = {{ proxy }}", after: "^https_proxy" }
+    #   become: yes
+
+    # - name: Full DL Sanctions2.csv
+    #   block:
+    #     - get_url: 
+    #         url: https://www.world-check.com/premium-dynamic-download/?subcategory=&format=TSV
+    #         dest: /datadisk/appHome/importList/wc_full/Sanctions2.csv
+    #         username: "{{ WC_user }}" 
+    #         password: "{{ WC_pass }}"
+    #   rescue:
+    #     - shell: wget -O /datadisk/appHome/importList/wc_full/Sanctions2.csv --http-user={{ WC_user }} --http-password={{ WC_pass }} https://www.world-check.com/premium-dynamic-download/?subcategory=&format=TSV
+    #       args:
+    #         warn: no
+
+    # - name: Full DL PEP2.csv
+    #   block:
+    #     - get_url: 
+    #         url: https://www.world-check.com/premium-dynamic-download/?subcategory=PEP%20L&subcategory=PEP%20L-R&subcategory=PEP%20L-A&subcategory=PEP%20NG&subcategory=PEP%20NG-R&subcategory=PEP%20NG-A&subcategory=SOE&subcategory=SIE&format=TSV
+    #         dest: /datadisk/appHome/importList/wc_full/PEP2.csv
+    #         username: "{{ WC_user }}" 
+    #         password: "{{ WC_pass }}"
+    #   rescue:
+    #     - shell: wget -O /datadisk/appHome/importList/wc_full/PEP2.csv --http-user={{ WC_user }} --http-password={{ WC_pass }} https://www.world-check.com/premium-dynamic-download/?subcategory=PEP%20L&subcategory=PEP%20L-R&subcategory=PEP%20L-A&subcategory=PEP%20NG&subcategory=PEP%20NG-R&subcategory=PEP%20NG-A&subcategory=SOE&subcategory=SIE&format=TSV
+    #       args:
+    #         warn: no
+
+    # - name: Full DL PEP1.csv
+    #   block:
+    #     - get_url: 
+    #         url: https://www.world-check.com/premium-dynamic-download/?subcategory=PEP%20IO&subcategory=PEP%20IO-R&subcategory=PEP%20IO-A&subcategory=PEP%20RO&subcategory=PEP%20RO-R&subcategory=PEP%20RO-A&subcategory=PEP%20N&subcategory=PEP%20N-R&subcategory=PEP%20N-A&subcategory=PEP%20SN&subcategory=PEP%20SN-R&subcategory=PEP%20SN-A&format=TSV
+    #         dest: /datadisk/appHome/importList/wc_full/PEP1.csv
+    #         username: "{{ WC_user }}" 
+    #         password: "{{ WC_pass }}"
+    #   rescue:
+    #     - shell: wget -O /datadisk/appHome/importList/wc_full/PEP1.csv --http-user={{ WC_user }} --http-password={{ WC_pass }} https://www.world-check.com/premium-dynamic-download/?subcategory=PEP%20IO&subcategory=PEP%20IO-R&subcategory=PEP%20IO-A&subcategory=PEP%20RO&subcategory=PEP%20RO-R&subcategory=PEP%20RO-A&subcategory=PEP%20N&subcategory=PEP%20N-R&subcategory=PEP%20N-A&subcategory=PEP%20SN&subcategory=PEP%20SN-R&subcategory=PEP%20SN-A&format=TSV
+    #       args:
+    #         warn: no            
+
+    # - name: Full DL Sanctions1.csv
+    #   block:
+    #     - get_url: 
+    #         url: https://www.world-check.com/premium-dynamic-download/?keyword=OFAC&keyword=OFAC-NONSDN&keyword=UN&keyword=EU&keyword=AEDFSA&keyword=AEDTO&keyword=UKHMT&keyword=USEMBARGO&keyword=UNEMBARGO&keyword=EUEMBARGO&keyword=RSSRE-WC&keyword=INSAE-WC&format=TSV
+    #         dest: /datadisk/appHome/importList/wc_full/Sanctions1.csv
+    #         username: "{{ WC_user }}" 
+    #         password: "{{ WC_pass }}"
+    #   rescue:
+    #     - shell: wget -O /datadisk/appHome/importList/wc_full/Sanctions1.csv --http-user={{ WC_user }} --http-password={{ WC_pass }} https://www.world-check.com/premium-dynamic-download/?keyword=OFAC&keyword=OFAC-NONSDN&keyword=UN&keyword=EU&keyword=AEDFSA&keyword=AEDTO&keyword=UKHMT&keyword=USEMBARGO&keyword=UNEMBARGO&keyword=EUEMBARGO&keyword=RSSRE-WC&keyword=INSAE-WC&format=TSV
+    #       args:
+    #         warn: no
+
+    - name: copy wc-daily scripts
+      copy:
+        src: "/datadisk/vendor-solution/app2/worldcheck/test/{{ item }}"
+        dest: /datadisk/appHome/importList/wc_daily/
+        mode: u=rwx,g=rx,o=rx
+        remote_src: yes
+      with_items:
+        - wc-daily1.sh
+        - wc-daily2.sh
+        - wc-daily3.sh
+        - wc-daily4.sh
+        - wc-dailydel.sh
+      when: env == test
+
+    - name: copy wc-daily scripts
+      copy:
+        src: "/datadisk/vendor-solution/app2/worldcheck/prd/{{ item }}"
+        dest: /datadisk/appHome/importList/wc_daily/
+        mode: u=rwx,g=rx,o=rx
+        remote_src: yes
+      with_items:
+        - wc-daily1.sh
+        - wc-daily2.sh
+        - wc-daily3.sh
+        - wc-daily4.sh
+        - wc-dailydel.sh
+      when: env == PRD
+
+    - name: add crontab entries for wc-daily jobs
+      cron:
+        name: "{{ item.name }}"
+        minute: "00"
+        hour: "21"
+        job: "/datadisk/appHome/importList/wc_daily/{{ item.job }} {{ WC_user }} {{ WC_pass }} {{ emailApiUser }} {{ emailApiPass }}"
+      with_items:
+        - { name: 'daily1', job: 'wc-daily1.sh'}
+        - { name: 'daily2', job: 'wc-daily2.sh'}
+        - { name: 'daily3', job: 'wc-daily3.sh'}
+        - { name: 'daily4', job: 'wc-daily4.sh'}
+        - { name: 'dailydel', job: 'wc-dailydel.sh'}
+

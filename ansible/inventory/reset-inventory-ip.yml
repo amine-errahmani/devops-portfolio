@@ -1,0 +1,45 @@
+---
+- name: reset inventory
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "reset app2 groups"
+      replace:
+        path: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      with_items: 
+        - {regexp: '\[app2_ss_n\]\n[^\n]+', replace: '[app2_ss_n]'}
+        - {regexp: '\[app2_ss_n\]\n[^\n]+', replace: '[app2_ss_n]'}
+        - {regexp: '\[app2_ss_n\]\n[^\n]+', replace: '[app2_ss_n]'}
+        - {regexp: '\[app2_ss_c\]\n[^\n]+', replace: '[app2_ss_c]'}
+        - {regexp: '\[app2_ss_c\]\n[^\n]+', replace: '[app2_ss_c]'}
+        - {regexp: '\[app2_batch_n\]\n[^\n]+', replace: '[app2_batch_n]'}
+        - {regexp: '\[app2_batch_c\]\n[^\n]+', replace: '[app2_batch_c]'}
+      when: module == "app2"
+
+    - name: "reset app3 groups"
+      replace:
+        path: "{{ version }}/ips/inventory_{{ env | lower }}.ini"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      with_items: 
+        - {regexp: '\[solr_servers_n\]\n[^\n]+', replace: '[solr_servers_n]'}
+        - {regexp: '\[solr_servers_n\]\n[^\n]+', replace: '[solr_servers_n]'}
+        - {regexp: '\[neo4j_servers_n\]\n[^\n]+', replace: '[neo4j_servers_n]'}
+        - {regexp: '\[neo4j_servers_n\]\n[^\n]+', replace: '[neo4j_servers_n]'}
+        - {regexp: '\[karaf_servers_n\]\n[^\n]+', replace: '[karaf_servers_n]'}
+        - {regexp: '\[karaf_servers_n\]\n[^\n]+', replace: '[karaf_servers_n]'}
+        - {regexp: '\[karaf_servers_n\]\n[^\n]+', replace: '[karaf_servers_n]'}
+        - {regexp: '\[solr_servers_c\]\n[^\n]+', replace: '[solr_servers_c]'}
+        - {regexp: '\[solr_servers_c\]\n[^\n]+', replace: '[solr_servers_c]'}
+        - {regexp: '\[neo4j_servers_c\]\n[^\n]+', replace: '[neo4j_servers_c]'}
+        - {regexp: '\[neo4j_servers_c\]\n[^\n]+', replace: '[neo4j_servers_c]'}
+        - {regexp: '\[karaf_servers_c\]\n[^\n]+', replace: '[karaf_servers_c]'}
+        - {regexp: '\[karaf_servers_c\]\n[^\n]+', replace: '[karaf_servers_c]'}
+        - {regexp: '\[karaf_servers_c\]\n[^\n]+', replace: '[karaf_servers_c]'}
+      when: module == "app3"      
+
+
